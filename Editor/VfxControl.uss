@@ -25,31 +25,6 @@
     min-height: 0;
 }
 
-/* ---- window header (EditorWindow draws its own) ---- */
-.vfx-header {
-    flex-direction: row;
-    align-items: center;
-    flex-shrink: 0;
-    height: 24px;
-    padding-left: 6px;
-    padding-right: 6px;
-    background-color: var(--unity-colors-toolbar-background);
-    border-bottom-width: 1px;
-    border-bottom-color: var(--unity-colors-toolbar-border);
-}
-
-.vfx-title {
-    -unity-font-style: bold;
-    margin-left: 4px;
-    color: var(--unity-colors-default-text);
-}
-
-.vfx-header-sub {
-    margin-left: 6px;
-    color: var(--unity-colors-label-text);
-    -unity-font-style: italic;
-}
-
 /* ---- asset / meta rows ---- */
 .vfx-meta {
     flex-shrink: 0;

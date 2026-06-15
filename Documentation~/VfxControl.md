@@ -1,14 +1,17 @@
 # VFX Control — project context
 
-A custom Unity Editor tool that augments the stock `VisualEffect` inspector with a
+A custom Unity Editor tool that replaces the stock `VisualEffect` inspector with a
 denser, more controllable UI (the "Bold"/Variant C design from
-`Docs/design_handoff_vfx_inspector/README.md`). It's a **dockable EditorWindow**, not
-a `[CustomEditor]`, to avoid conflicting with the VFX package's own
-`AdvancedVisualEffectEditor`.
+`Docs/design_handoff_vfx_inspector/README.md`). It's a **`[CustomEditor(typeof(VisualEffect))]`**
+(`VfxControlInspector`) that wins over the VFX package's own `AdvancedVisualEffectEditor` because a
+non-Unity assembly's editor takes precedence. (It began life as a dockable `EditorWindow`; that host
+has been retired — the inspector + native per-tab popups now cover everything it did.)
 
-- Unity **6000.6.0a2**, `com.unity.visualeffectgraph` **17.6.0**.th
-- Open via **`Window ▸ VFX Control`**. Diagnostic: **`Tools ▸ VFX Control ▸ Diagnose Target`**
-  (logs how the selected/target VFX's exposed properties enumerate — keep for debugging).
+- Unity **6000.6.0a2**, `com.unity.visualeffectgraph` **17.6.0**.
+- Entry point: **select a `VisualEffect`** → the inspector renders. Tear off a single tab as a dockable
+  `PropertyEditor` popup via the component gear ▸ **`VFX Control ▸ <Tab>`** or by right-clicking a tab.
+  Diagnostic: **`Tools ▸ VFX Control ▸ Diagnose Target`** (logs how the target VFX's exposed properties
+  enumerate — keep for debugging).
 - All code is editor-only under `Assets/VfxControl/Editor/`, compiled by
   **`VfxControl.Editor.asmdef`** (`includePlatforms: ["Editor"]`, `references: []`). It needs no
   package references: the compile-time VFX types (`VisualEffect`/`VisualEffectAsset`/`VFXRenderer`/
@@ -195,23 +198,21 @@ name for display, bold/`<b>` when used as a header), `SheetType`, `RealType`, `C
   `(header, content, open)` (the header twirl/title/optional-count + the `ToggleCollapse(key)`
   click); callers fill `content` themselves (Debug builds lazily on `open`, the rest build rows
   unconditionally, Send-Event appends its ★ pin to the returned header). The **All tab** (default) is a traditional inspector:
-  Properties+Renderer+Playback stacked with no rail (`BuildAllTab`). **Tab tear-off**: right-clicking
-  a focused tab (not "All") → **"Open in new window"** (`ContextualMenuManipulator` → `OpenSolo`)
-  spawns a second dockable `VfxControlWindow` via `CreateWindow<>` pinned to that one tab — a
-  **`[SerializeField]` `_soloTab`** so each window keeps its OWN pinned tab across a domain reload/restart
-  (a torn-off Renderer window stays Renderer instead of syncing to the shared, SessionState main-tab).
-  Unity serializes a null string as `""` and the main window never sets it, so every "is solo" test goes
-  through **`IsSolo` (`!string.IsNullOrEmpty(_soloTab)`)** — treating null/empty as a *full* window, which
-  is what keeps the main window from coming back lean (an earlier non-serialized `_soloTab` that survived
-  a reload was the repro for the main window stranding its Asset/transport). A solo window hides the tab
-  strip (`PopulateTabs` early-out) and forces `_tab` (clamped right after `_tab = _state.Tab` in
-  `SetTarget`, so it follows selection without ever writing the shared `_state.Tab`). A pop-out is
-  **lean** — `Rebuild` always builds the Asset (meta) row + transport bar + section gap but sets their
-  `display` to `None` when `IsSolo` (so they can never be stranded out of the tree), keeping just header +
-  chrome (search + chips) + rail + the one tab's body — and is a **passive observer**: `Tick` only
-  advances the playback clock when `!IsSolo`, so multiple windows never fight over
-  `Reinit`/`pause` on the shared effect (the main window stays the transport's home). `Open` (the
-  menu) restores a solo instance to a full window if that's the only one focused. Each under a **collapsible**
+  Properties+Renderer+Playback stacked with no rail (`BuildAllTab`). **Tab tear-off (per-tab popup)**:
+  the component gear ▸ **`VFX Control ▸ <Tab>`** context entries, or right-clicking a focused tab (not
+  "All") → **"Open in new window"** (`ContextualMenuManipulator` → `IVfxHost.OpenSolo`), both call
+  `VfxControlInspector.OpenTabPopup` → set a static **pending solo tab** + `EditorUtility.OpenPropertyEditor`,
+  opening Unity's native dockable `PropertyEditor` filtered to that one tab. The freshly created
+  `VfxControlInspector` consumes the pending tab in `OnEnable` into its `_soloTab`; every "is solo" test
+  goes through **`IsSolo` (`!string.IsNullOrEmpty(_host.SoloTab)`)** — null/empty is the *full* inspector.
+  A solo popup hides the tab strip (`PopulateTabs` early-out) and forces `_tab` (clamped right after
+  `_tab = _state.Tab` in `SetTarget`, so it follows selection without ever writing the shared `_state.Tab`).
+  A pop-out is **lean** — `Rebuild` skips the Asset (meta) row + transport bar + section gap when `IsSolo`,
+  keeping just chrome (search + chips) + rail + the one tab's body — and is a **passive observer**: `Tick`
+  only advances the playback clock when `!IsSolo`, so multiple popups never fight over `Reinit`/`pause` on
+  the shared effect (the main inspector stays the transport's home). (Caveat: the popup's solo filter is
+  applied at open time and does not survive a domain reload — the recreated editor reverts to full; re-invoke
+  the menu.) Each under a **collapsible**
   top-level header (`AddAllSection`, `.vfx-allsection-head` + `-title`/`-twirl`, collapse key
   `all:<title>`) that reads above the boxed category headers below it.
 - **Renderer tab**: the `VisualEffect` renders through a sibling **`VFXRenderer`**; this

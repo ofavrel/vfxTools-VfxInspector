@@ -5,14 +5,16 @@
 // Drives the edited set from Editor.targets (no scene-selection tracking) and routes gizmos via the
 // controller's scene-GUI hook.
 //
-// Per-tab popups: the component context menu (gear ▸ / right-click) has "VFX Control ▸ <Tab>" entries
-// that open Unity's native dockable PropertyEditor (EditorUtility.OpenPropertyEditor) filtered to one
-// tab — the inspector equivalent of the window's tab tear-off. The chosen tab is handed to the freshly
-// created inspector via a static "pending solo tab" (consumed in OnEnable), then the controller's solo
-// machinery (IsSolo → pin _tab + hide the tab strip) does the rest.
+// Per-tab popups (tear-off): either the component context menu (gear ▸ / right-click) "VFX Control ▸
+// <Tab>" entries or right-clicking a tab inside the inspector open Unity's native dockable PropertyEditor
+// (EditorUtility.OpenPropertyEditor) filtered to one tab. The chosen tab is handed to the freshly created
+// inspector via a static "pending solo tab" (consumed in OnEnable), then the controller's solo machinery
+// (IsSolo → pin _tab + hide the tab strip) does the rest.
 
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.VFX;
 
@@ -20,16 +22,17 @@ namespace VfxControl.EditorTools
 {
     [CustomEditor(typeof(VisualEffect))]
     [CanEditMultipleObjects]
-    public sealed class VfxControlInspector : Editor, IVfxHost
+    public sealed class VfxControlInspector : Editor
     {
         private VfxControl _ctrl;
         private VisualElement _root;
         private string _soloTab; // non-null in a per-tab popup; null for the normal (full) inspector
 
-        public VisualElement Root => _root;
-        public bool IsInspector => true;
-        public string SoloTab => _soloTab;
-        public void OpenSolo(string tabId, string label) { } // no in-place tear-off; popups go through the context menu
+        // Read by the controller: the root it builds into + the pinned tab of a per-tab popup (null = full).
+        internal VisualElement Root => _root;
+        internal string SoloTab => _soloTab;
+        // Right-click a tab in the inspector → open it as a dockable popup pinned to that tab (label unused).
+        internal void OpenSolo(string tabId, string label) => OpenTabPopup(target, tabId);
 
         private void OnEnable()
         {
@@ -73,11 +76,44 @@ namespace VfxControl.EditorTools
         [MenuItem("CONTEXT/VisualEffect/VFX Control/Renderer")]   private static void OpenRender(MenuCommand c) => OpenTab(c, "render");
         [MenuItem("CONTEXT/VisualEffect/VFX Control/Debug")]      private static void OpenDebug(MenuCommand c) => OpenTab(c, "debug");
 
-        private static void OpenTab(MenuCommand command, string tab)
+        private static void OpenTab(MenuCommand command, string tab) => OpenTabPopup(command?.context, tab);
+
+        private static void OpenTabPopup(Object obj, string tab)
         {
-            if (command?.context == null) return;
+            if (obj == null) return;
             s_pendingSoloTab = tab;
-            EditorUtility.OpenPropertyEditor(command.context); // native dockable PropertyEditor → our inspector
+            EditorUtility.OpenPropertyEditor(obj); // native dockable PropertyEditor → our inspector, pinned to `tab`
+        }
+
+        // ---- diagnostics ----------------------------------------------------------------------------
+        // Logs exactly where exposed-property enumeration succeeds or fails for the selected/target VFX.
+        [MenuItem("Tools/VFX Control/Diagnose Target")]
+        private static void Diagnose()
+        {
+            var go = Selection.activeGameObject;
+            var ve = go != null ? go.GetComponent<VisualEffect>() : Selection.activeObject as VisualEffect;
+            var asset = ve != null ? ve.visualEffectAsset : Selection.activeObject as VisualEffectAsset;
+
+            Debug.Log($"[VFX Control] Diagnose — component={(ve != null ? ve.name : "null")}, " +
+                      $"persistent={(ve != null && EditorUtility.IsPersistent(ve))}, " +
+                      $"asset={(asset != null ? asset.name : "null")}");
+            Debug.Log($"[VFX Control] Binding: {VfxGraphReflection.DescribeBindingState()}");
+
+            VfxGraphReflection.Verbose = true;
+            try
+            {
+                var ps = VfxGraphReflection.GetExposedParameters(asset);
+                Debug.Log($"[VFX Control] Enumerated {ps.Count} parameter(s): " +
+                          string.Join(", ", ps.Select(p => $"{p.Name}[{p.SheetType}/{p.RealType}] cat='{p.Category}'")));
+
+                var evts = VfxGraphReflection.GetEventNames(asset);
+                Debug.Log($"[VFX Control] Custom events ({evts.Count}): {string.Join(", ", evts)}");
+
+                var customs = VfxGraphReflection.GetCustomAttributes(asset);
+                Debug.Log($"[VFX Control] Custom attributes ({customs.Count}): " +
+                          string.Join(", ", customs.Select(c => $"{c.name}#{c.type}")));
+            }
+            finally { VfxGraphReflection.Verbose = false; }
         }
     }
 }

@@ -1,16 +1,14 @@
-// VFX Control — target resolution & multi-instance editing (partial of VfxControlWindow).
+// VFX Control — target binding & multi-instance editing (partial of VfxControlWindow).
 //
-// Resolves the scene VisualEffect(s) to edit from the current selection (single or several
-// sharing one asset), rejecting persistent assets/prefab-assets; binds a SerializedObject
-// per instance; and routes all writes through SetValueAll/ResetAll so multi-edit stays
-// index-safe. Also the per-tab rail section persistence. Split out of VfxControlWindow.cs —
-// same class (partial), shared private state.
+// Binds the inspected VisualEffect(s) (the editor's targets, several sharing one asset for
+// multi-edit) to a SerializedObject per instance, and routes all writes through
+// SetValueAll/ResetAll so multi-edit stays index-safe. Also the per-tab rail section
+// persistence. Split out of VfxControlWindow.cs — same class (partial), shared private state.
 
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine.VFX;
-using Object = UnityEngine.Object;
 
 namespace VfxControl.EditorTools
 {
@@ -23,68 +21,13 @@ namespace VfxControl.EditorTools
         private readonly List<SerializedObject> _sos = new List<SerializedObject>();  // one per instance (writes apply to all)
         private List<VfxExposedParam> _params = new List<VfxExposedParam>();
 
-        private string _selectionHint; // why there's no editable target (shown as placeholder)
         // ------------------------------------------------------------------ target
 
-        // Resolve the *scene* VisualEffect component to edit. We deliberately reject
-        // anything persistent: selecting a .vfx asset, or a prefab asset in the
-        // Project (whose root GameObject Selection.activeGameObject exposes), must
-        // NOT let you edit it as if it were a live instance. This window edits the
-        // component's per-instance override sheet, which only makes sense on a
-        // scene/prefab-instance object.
-        private VisualEffect ResolveSelectedEffect(out string hint)
-        {
-            hint = null;
-
-            var go = Selection.activeGameObject;
-            var effect = go != null ? go.GetComponent<VisualEffect>() : Selection.activeObject as VisualEffect;
-
-            if (effect != null)
-            {
-                if (EditorUtility.IsPersistent(effect))
-                {
-                    hint = "That Visual Effect lives on a prefab/asset in the Project.\n" +
-                           "Drag it into a scene (or select a scene instance) to edit its instance properties.";
-                    return null;
-                }
-                return effect; // a scene (non-persistent) instance — editable
-            }
-
-            if (Selection.activeObject is VisualEffectAsset)
-                hint = "You selected a Visual Effect asset (.vfx).\n" +
-                       "Select a GameObject with a Visual Effect component in the scene to edit its instance properties.";
-
-            return null;
-        }
-
-        // Inspector host: drive the edited set straight from Editor.targets (no Selection / sticky logic).
+        // Drive the edited set straight from the editor's targets (the inspected VisualEffect components).
         public void SetTargets(IReadOnlyList<VisualEffect> targets)
         {
             if (targets == null || targets.Count == 0) { SetTarget(null, new List<VisualEffect>()); return; }
-            _selectionHint = null;
             SetTarget(targets[0], new List<VisualEffect>(targets));
-        }
-
-        // Window host: resolve the edited set from the current scene selection (sticky).
-        public void RefreshTarget()
-        {
-            var effect = ResolveSelectedEffect(out var hint);
-
-            if (effect != null)
-            {
-                _selectionHint = null;
-                var targets = GatherTargets(effect);
-                if (effect != _effect || _so == null || !SameSet(targets, _effects))
-                    SetTarget(effect, targets);
-                return;
-            }
-
-            // The selection isn't a scene Visual Effect. Stay STICKY on the last selected instance so
-            // clicking around (scene, Inspector, VFX Graph editor) to tweak values doesn't blank the
-            // window. Only drop to guidance when there's no live effect to keep — nothing has been
-            // selected yet this session, or the previous target was destroyed (`_effect` reads Unity-null).
-            if (_effect != null) { _selectionHint = null; return; }
-            _selectionHint = hint;
         }
 
         // All selected scene VisualEffects sharing the primary's asset (primary first),
@@ -104,15 +47,8 @@ namespace VfxControl.EditorTools
             return list;
         }
 
-        private static bool SameSet(List<VisualEffect> a, List<VisualEffect> b)
-        {
-            if (a.Count != b.Count) return false;
-            for (int i = 0; i < a.Count; i++) if (a[i] != b[i]) return false;
-            return true;
-        }
-
-        // Bind the window to a primary VisualEffect (+ any same-asset instances to edit)
-        // and load its exposed properties + per-asset UI state.
+        // Bind a primary VisualEffect (+ any same-asset instances to edit) and load its
+        // exposed properties + per-asset UI state.
         private void SetTarget(VisualEffect effect) => SetTarget(effect, GatherTargets(effect));
 
         private void SetTarget(VisualEffect effect, List<VisualEffect> targets)
@@ -152,7 +88,7 @@ namespace VfxControl.EditorTools
             _collapsed = _state.LoadCollapsed();
             _constrained = _state.LoadConstrained();
             _tab = _state.Tab;
-            if (IsSolo) _tab = _host.SoloTab; // a pop-out window is pinned to its one tab
+            if (IsSolo) _tab = _inspector.SoloTab; // a per-tab popup is pinned to its one tab
             _filter = _state.Filter;
             _search = _state.Search;
             LoadSections();

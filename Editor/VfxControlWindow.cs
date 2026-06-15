@@ -1,9 +1,8 @@
-// VFX Control — a dockable EditorWindow that augments the stock VisualEffect
-// inspector with the "Bold" layout from the design handoff (Variant C).
+// VFX Control — the host-agnostic UI controller (built into VfxControlInspector's root).
 //
-// Hosting as a window (rather than [CustomEditor(typeof(VisualEffect))]) sidesteps
-// the conflict with the VFX package's own AdvancedVisualEffectEditor. The window
-// tracks the current selection and rebuilds when it changes.
+// Implements the stock VisualEffect inspector replacement with the "Bold" layout from the design
+// handoff (Variant C). The custom editor (VfxControlInspector) wins over the VFX package's own
+// AdvancedVisualEffectEditor because a non-Unity assembly's [CustomEditor] takes precedence.
 //
 // This core partial holds lifecycle, Rebuild/PopulateActiveTab/BuildChrome, the
 // tab/rail/chip/footer chrome, the All tab, the Favorites group, and shared helpers;
@@ -52,12 +51,11 @@ namespace VfxControl.EditorTools
         private Image _playIcon;
         private Slider _rateSlider; // Play Rate strip under the transport (resynced by UpdateLive)
 
-        // The host (dockable window or custom Inspector) provides the root element + tear-off state.
-        // IsSolo (window tab tear-off) treats a null/empty SoloTab as a full window; the inspector host
-        // always reports null, so it is never "solo".
-        private readonly IVfxHost _host;
-        internal VfxControl(IVfxHost host) { _host = host; }
-        private bool IsSolo => !string.IsNullOrEmpty(_host.SoloTab);
+        // The custom Inspector host provides the root element + tear-off state. IsSolo treats a
+        // null/empty SoloTab as the full inspector; a per-tab popup reports its pinned tab → lean layout.
+        private readonly VfxControlInspector _inspector;
+        internal VfxControl(VfxControlInspector inspector) { _inspector = inspector; }
+        private bool IsSolo => !string.IsNullOrEmpty(_inspector.SoloTab);
         // persistent chrome containers: the search field is built ONCE (so typing never
         // loses focus); tabs/chips/rail/body are repopulated by PopulateActiveTab.
         private ToolbarSearchField _searchField;
@@ -87,10 +85,8 @@ namespace VfxControl.EditorTools
             public bool HasDot;
         }
 
-        // Lifecycle, driven by the host (window/inspector). Enable wires the global editor hooks + the
-        // ~30fps clock; the host then sets the target (RefreshTarget for the window, SetTargets for the
-        // inspector) and calls Rebuild. Disable tears it all down. The Window ▸ VFX Control / Diagnose
-        // menu items live on the window host.
+        // Lifecycle, driven by VfxControlInspector. Enable wires the global editor hooks + the ~30fps
+        // clock; the inspector then calls SetTargets + Rebuild. Disable tears it all down.
         public void Enable()
         {
             _duration = VfxControlState.GetTimelineDuration();
@@ -129,19 +125,6 @@ namespace VfxControl.EditorTools
             Rebuild();
         }
 
-        // The window host forwards EditorWindow.OnSelectionChange here (the inspector is target-fixed).
-        public void HandleSelectionChange()
-        {
-            var prev = _effect;
-            var prevHint = _selectionHint;
-            RefreshTarget();
-            if (prev != _effect || prevHint != _selectionHint)
-            {
-                _search = _state?.Search ?? "";
-                Rebuild();
-            }
-        }
-
         private void OnUndoRedo()
         {
             UpdateAllSos();
@@ -152,7 +135,7 @@ namespace VfxControl.EditorTools
 
         public void Rebuild()
         {
-            var root = _host.Root;
+            var root = _inspector.Root;
             root.Clear();
             root.AddToClassList("vfx-root");
 
@@ -160,14 +143,10 @@ namespace VfxControl.EditorTools
             if (uss != null && !root.styleSheets.Contains(uss))
                 root.styleSheets.Add(uss);
 
-            // The window needs its own title/instance header; the inspector already has the component
-            // header above it, so skip the redundant "VFX Control / <instance>" header there.
-            if (!_host.IsInspector) root.Add(BuildHeader());
-
+            // The component header above the inspector already names the instance, so no title header here.
             if (_effect == null)
             {
-                var ph = new Label(_selectionHint ??
-                    "Select a Visual Effect in the Hierarchy to edit its instance properties.");
+                var ph = new Label("Select a Visual Effect in the Hierarchy to edit its instance properties.");
                 ph.AddToClassList("vfx-placeholder");
                 root.Add(ph);
                 return;
@@ -176,30 +155,13 @@ namespace VfxControl.EditorTools
             if (_so == null) SetTarget(_effect); // recover after a domain reload
             UpdateAllSos();
 
-            // Asset row + transport bar. The inspector shows the Asset field (the .vfx the component
-            // plays) but not the transport yet (arrives in Increment 3). In the dockable window both are
-            // always BUILT (never stranded) and merely hidden in solo mode.
-            if (_host.IsInspector)
+            // Asset row + transport bar. A per-tab popup (IsSolo) is lean — just the one tab body
+            // (PopulateTabs hides the strip); the full inspector shows the Asset field + persistent transport.
+            if (!IsSolo)
             {
-                // A per-tab popup (IsSolo) is lean — just the one tab body (PopulateTabs hides the strip);
-                // the full inspector shows the Asset field + persistent transport.
-                if (!IsSolo)
-                {
-                    root.Add(BuildMetaSection());             // the .vfx Asset field
-                    root.Add(BuildMiniTransport());           // persistent transport (always visible)
-                    root.Add(MakeElement("vfx-section-gap"));
-                }
-            }
-            else
-            {
-                var meta = BuildMetaSection();
-                var transport = BuildMiniTransport();
-                var gap = MakeElement("vfx-section-gap");   // the intentional divider
-                var leanDisplay = IsSolo ? DisplayStyle.None : DisplayStyle.Flex;
-                meta.style.display = transport.style.display = gap.style.display = leanDisplay;
-                root.Add(meta);
-                root.Add(transport);
-                root.Add(gap);
+                root.Add(BuildMetaSection());             // the .vfx Asset field
+                root.Add(BuildMiniTransport());           // persistent transport (always visible)
+                root.Add(MakeElement("vfx-section-gap"));
             }
 
             // Persistent chrome: search + chips ABOVE the tabs (shared across tabs), then
@@ -384,25 +346,7 @@ namespace VfxControl.EditorTools
             _chipsHost.Add(MakeChip("mod", "Modified", modCount));
         }
 
-        private VisualElement BuildHeader()
-        {
-            var header = MakeElement("vfx-header");
-            var titleLabel = new Label("VFX Control");
-            titleLabel.AddToClassList("vfx-title");
-            header.Add(titleLabel);
-            if (_effect != null)
-            {
-                var sub = new Label(_effects.Count > 1
-                    ? $"{_effect.gameObject.name}  (+{_effects.Count - 1} more)"
-                    : _effect.gameObject.name);
-                sub.AddToClassList("vfx-header-sub");
-                header.Add(sub);
-            }
-            return header;
-        }
-
-        // The window's target: an explicit picker for a Visual Effect component in
-        // the scene Hierarchy (drag a GameObject in, or use the object picker).
+        // The .vfx Asset field: the VisualEffectAsset the inspected component plays.
         private VisualElement BuildMetaSection()
         {
             var meta = MakeElement("vfx-meta");
@@ -440,11 +384,11 @@ namespace VfxControl.EditorTools
             var tab = new Button();
             tab.AddToClassList("vfx-tab");
             tab.tooltip = "Alt+click to expand/collapse all · right-click to open in a new window";
-            // Tear-off: right-click any focused tab → pop it into its own dockable window. Excluded
-            // for "All" (a solo All would host the Debug shortcut whose jump has no strip to land on).
+            // Tear-off: right-click any tab → open it as its own dockable popup (PropertyEditor) via the
+            // host. Excluded for "All" (a solo All hosts the Debug shortcut whose jump has no strip to land on).
             if (id != "all")
                 tab.AddManipulator(new ContextualMenuManipulator(evt =>
-                    evt.menu.AppendAction("Open in new window", _ => _host.OpenSolo(id, label))));
+                    evt.menu.AppendAction("Open in new window", _ => _inspector.OpenSolo(id, label))));
             tab.RegisterCallback<ClickEvent>(e =>
             {
                 if (e.altKey)
@@ -466,14 +410,6 @@ namespace VfxControl.EditorTools
                 tab.Add(badge);
             }
             return tab;
-        }
-
-        // Pin to the host's solo tab (if any) and rebuild — the window host calls this after a tear-off
-        // so the new pop-out renders pinned to its one tab.
-        public void ApplyHostTabAndRebuild()
-        {
-            if (IsSolo) _tab = _host.SoloTab;
-            Rebuild();
         }
 
         // ------------------------------------------------------------------ properties tab
@@ -923,8 +859,8 @@ namespace VfxControl.EditorTools
             float dt = Mathf.Min((float)(now - _lastTick), 0.1f); // clamp so idle gaps don't jump
             _lastTick = now;
 
-            // Full hosts (window + inspector, both with a transport) drive the playback clock; a
-            // transport-less solo pop-out just observes (so multiple hosts don't fight over Reinit/pause).
+            // The full inspector (which has the transport) drives the playback clock; a transport-less
+            // solo pop-out just observes (so multiple views don't fight over Reinit/pause).
             if (!IsSolo && _effect != null && !_effect.pause && _duration > 0f)
             {
                 float rate = _effect.playRate <= 0f ? 1f : _effect.playRate;
