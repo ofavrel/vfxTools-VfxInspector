@@ -169,10 +169,14 @@ namespace VfxControl.EditorTools
             if (_so == null) SetTarget(_effect); // recover after a domain reload
             UpdateAllSos();
 
-            // Asset row + transport bar (the window's persistent chrome). The inspector host omits them
-            // (it's already on the component, and has no transport yet — added in a later increment).
-            // In the dockable window they're always BUILT (never stranded) and merely hidden in solo mode.
-            if (!_host.IsInspector)
+            // Asset row + transport bar. The inspector shows the Asset field (the .vfx the component
+            // plays) but not the transport yet (arrives in Increment 3). In the dockable window both are
+            // always BUILT (never stranded) and merely hidden in solo mode.
+            if (_host.IsInspector)
+            {
+                root.Add(BuildMetaSection()); // the .vfx Asset field
+            }
+            else
             {
                 var meta = BuildMetaSection();
                 var transport = BuildMiniTransport();
