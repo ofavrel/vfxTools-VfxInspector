@@ -1,8 +1,8 @@
 {
   "name": "com.vfxtools.vfxinspector",
   "version": "0.3.0",
-  "displayName": "VFX Control",
-  "description": "A denser, more controllable replacement for Unity's Visual Effect inspector: a custom inspector for the VisualEffect component (Properties/Playback/Debug/Renderer tabs, scene gizmos, per-particle readback + CSV export) that wins over the stock VFX inspector. Tear off any tab as a dockable popup via the component's VFX Control context menu.",
+  "displayName": "VFX Inspector",
+  "description": "A denser, more controllable replacement for Unity's Visual Effect inspector: a custom inspector for the VisualEffect component (Properties/Playback/Debug/Renderer tabs, scene gizmos, per-particle readback + CSV export) that wins over the stock VFX inspector. Tear off any tab as a dockable popup via the component's VFX Inspector context menu.",
   "unity": "6000.0",
   "keywords": [
     "vfx",

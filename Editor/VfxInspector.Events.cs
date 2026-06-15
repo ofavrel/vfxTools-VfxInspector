@@ -1,4 +1,4 @@
-// VFX Control — Send Event + event payload editor (partial of VfxInspector).
+// VFX Inspector — Send Event + event payload editor (partial of VfxInspector).
 //
 // The Playback tab's "Send Event" section: quick-chips (OnPlay/OnStop + every graph Event
 // block) and a reorderable payload editor (name · type · value rows over a VFXEventAttribute,

@@ -1,4 +1,4 @@
-// VFX Control — reflection bridge to UnityEditor.Clipboard (internal).
+// VFX Inspector — reflection bridge to UnityEditor.Clipboard (internal).
 //
 // The editor's Clipboard stores typed values in the system buffer using the same
 // format the Inspector's right-click Copy/Paste uses, so values round-trip between

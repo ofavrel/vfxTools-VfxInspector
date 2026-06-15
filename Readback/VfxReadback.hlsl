@@ -1,4 +1,4 @@
-// VFX Control — particle attribute readback (opt-in).
+// VFX Inspector — particle attribute readback (opt-in).
 //
 // Point a "Custom HLSL" block at this file and select the `VfxReadback` function. Works in the
 // **Update** context (re-runs every frame for every live particle) or the **Output** context (runs per
@@ -7,7 +7,7 @@
 //
 // MULTI-INSTANCE: the function takes an `instanceId` input port. To capture several VisualEffect
 // instances of the asset separately, add an **exposed Int property named `VfxReadbackInstanceId`** to
-// the graph and wire it into the block's `instanceId` input — the VFX Control window auto-assigns each
+// the graph and wire it into the block's `instanceId` input — the VFX Inspector auto-assigns each
 // selected instance a distinct id via `SetInt`. Unwired → id 0 (single merged instance).
 //
 // MULTI-SYSTEM: the function also takes a `systemId` input port. To debug several systems of one graph

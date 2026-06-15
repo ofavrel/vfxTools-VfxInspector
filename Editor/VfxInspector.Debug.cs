@@ -1,4 +1,4 @@
-// VFX Control — Debug tab (partial of VfxInspector).
+// VFX Inspector — Debug tab (partial of VfxInspector).
 //
 // Live runtime statistics (alive/efficiency/bounds/state), CPU/GPU profiling markers,
 // per-system capacity bars + attribute-layout/memory, texture usage, and the Show Bounds

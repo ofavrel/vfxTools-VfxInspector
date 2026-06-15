@@ -1,4 +1,4 @@
-// VFX Control — Playback tab + transport (partial of VfxInspector).
+// VFX Inspector — Playback tab + transport (partial of VfxInspector).
 //
 // The persistent mini-transport (scrub bar, play/pause/step/loop, Rate slider) and the
 // Playback tab's "Playback options" section: Duration, Start Seed (+ Reseed), Reseed on

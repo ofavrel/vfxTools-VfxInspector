@@ -1,4 +1,4 @@
-// VFX Control — the host-agnostic UI controller (built into VfxInspectorEditor's root).
+// VFX Inspector — the host-agnostic UI controller (built into VfxInspectorEditor's root).
 //
 // Implements the stock VisualEffect inspector replacement with the "Bold" layout from the design
 // handoff (Variant C). The custom editor (VfxInspectorEditor) wins over the VFX package's own

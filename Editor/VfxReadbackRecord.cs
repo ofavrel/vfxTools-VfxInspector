@@ -1,4 +1,4 @@
-// VFX Control — the particle readback record contract (mirror of Readback/VfxReadback.hlsl).
+// VFX Inspector — the particle readback record contract (mirror of Readback/VfxReadback.hlsl).
 //
 // The fixed per-particle float-offset packing + the curated attribute table, plus pure decoders
 // over a read-back Vector4[] buffer. The Float offsets here MUST match VfxReadback.hlsl's record

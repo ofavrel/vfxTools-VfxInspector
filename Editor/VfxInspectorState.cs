@@ -1,4 +1,4 @@
-// VFX Control — persistence of custom UI state (NOT part of the VFX asset).
+// VFX Inspector — persistence of custom UI state (NOT part of the VFX asset).
 //
 // Favorites and collapsed groups persist across sessions in EditorPrefs, keyed
 // by the VisualEffectAsset GUID (per the handoff). Tab / filter / category /

@@ -1,4 +1,4 @@
-# VFX Control — project context
+# VFX Inspector — project context
 
 A custom Unity Editor tool that replaces the stock `VisualEffect` inspector with a
 denser, more controllable UI (the "Bold"/Variant C design from
@@ -9,8 +9,8 @@ has been retired — the inspector + native per-tab popups now cover everything 
 
 - Unity **6000.6.0a2**, `com.unity.visualeffectgraph` **17.6.0**.
 - Entry point: **select a `VisualEffect`** → the inspector renders. Tear off a single tab as a dockable
-  `PropertyEditor` popup via the component gear ▸ **`VFX Control ▸ <Tab>`** or by right-clicking a tab.
-  Diagnostic: **`Tools ▸ VFX Control ▸ Diagnose Target`** (logs how the target VFX's exposed properties
+  `PropertyEditor` popup via the component gear ▸ **`VFX Inspector ▸ <Tab>`** or by right-clicking a tab.
+  Diagnostic: **`Tools ▸ VFX Inspector ▸ Diagnose Target`** (logs how the target VFX's exposed properties
   enumerate — keep for debugging).
 - All code is editor-only under `Assets/VfxInspector/Editor/`, compiled by
   **`VfxInspector.Editor.asmdef`** (`includePlatforms: ["Editor"]`, `references: []`). It needs no
@@ -199,7 +199,7 @@ name for display, bold/`<b>` when used as a header), `SheetType`, `RealType`, `C
   click); callers fill `content` themselves (Debug builds lazily on `open`, the rest build rows
   unconditionally, Send-Event appends its ★ pin to the returned header). The **All tab** (default) is a traditional inspector:
   Properties+Renderer+Playback stacked with no rail (`BuildAllTab`). **Tab tear-off (per-tab popup)**:
-  the component gear ▸ **`VFX Control ▸ <Tab>`** context entries, or right-clicking a focused tab (not
+  the component gear ▸ **`VFX Inspector ▸ <Tab>`** context entries, or right-clicking a focused tab (not
   "All") → **"Open in new window"** (`ContextualMenuManipulator` → `IVfxHost.OpenSolo`), both call
   `VfxInspectorEditor.OpenTabPopup` → set a static **pending solo tab** + `EditorUtility.OpenPropertyEditor`,
   opening Unity's native dockable `PropertyEditor` filtered to that one tab. The freshly created

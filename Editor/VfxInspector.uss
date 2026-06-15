@@ -1,4 +1,4 @@
-/* VFX Control — styling. Colors bind to Unity's built-in --unity-* USS
+/* VFX Inspector — styling. Colors bind to Unity's built-in --unity-* USS
    variables so the window tracks the user's Editor theme automatically. The
    few hand-authored colors are named custom properties on .vfx-root
    (--vfx-star/warn/bolt); the category accent dots are a separate per-name

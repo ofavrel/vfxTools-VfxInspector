@@ -1,4 +1,4 @@
-// VFX Control — scene-view gizmos (partial of VfxInspector).
+// VFX Inspector — scene-view gizmos (partial of VfxInspector).
 //
 // Custom Handles-based editing for spaceable struct properties: Position, Direction,
 // Vector, AABox, Line, Plane, plus the shape gizmos (Cone/Sphere/Circle/Torus + Arc

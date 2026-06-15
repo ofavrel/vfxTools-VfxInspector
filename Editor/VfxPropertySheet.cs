@@ -1,4 +1,4 @@
-// VFX Control — read/write helpers for the VisualEffect component's serialized
+// VFX Inspector — read/write helpers for the VisualEffect component's serialized
 // override sheet (m_PropertySheet).
 //
 // Every exposed property maps to an entry in m_PropertySheet.<sheetType>.m_Array,

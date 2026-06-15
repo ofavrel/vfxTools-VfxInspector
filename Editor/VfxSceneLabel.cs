@@ -1,4 +1,4 @@
-// VFX Control — shared scene-view text label (translucent rounded box + rich text).
+// VFX Inspector — shared scene-view text label (translucent rounded box + rich text).
 //
 // Used by both the gizmo labels (VfxInspector.Gizmos) and the particle overlay
 // (VfxParticleReadback), so it lives here as a static helper owned by neither. State (the

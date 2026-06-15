@@ -1,4 +1,4 @@
-// VFX Control — particle attribute readback (Debug ▸ Particles spreadsheet + scene overlay).
+// VFX Inspector — particle attribute readback (Debug ▸ Particles spreadsheet + scene overlay).
 //
 // VFX particles are GPU-only with no managed readback, so the graph is instrumented with a
 // Custom HLSL block (Readback/VfxReadback.hlsl) that writes a fixed record per particle into a

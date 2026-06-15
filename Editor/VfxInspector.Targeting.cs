@@ -1,4 +1,4 @@
-// VFX Control — target binding & multi-instance editing (partial of VfxInspector).
+// VFX Inspector — target binding & multi-instance editing (partial of VfxInspector).
 //
 // Binds the inspected VisualEffect(s) (the editor's targets, several sharing one asset for
 // multi-edit) to a SerializedObject per instance, and routes all writes through

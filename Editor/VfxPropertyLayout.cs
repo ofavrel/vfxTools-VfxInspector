@@ -1,4 +1,4 @@
-// VFX Control — pure layout/classification logic for the exposed-property list.
+// VFX Inspector — pure layout/classification logic for the exposed-property list.
 //
 // Stateless decisions extracted from the Properties tab so they're unit-testable without a window
 // or a live VFX asset: how a struct parent renders (flatten / inline / card), and the per-category

@@ -1,4 +1,4 @@
-// VFX Control — constrained-proportions math (the chain-lock on multi-component values).
+// VFX Inspector — constrained-proportions math (the chain-lock on multi-component values).
 //
 // Pure, stateless: scaling one component scales the rest by the same ratio (Unity's
 // constrained-proportions behavior). Extracted from the property rows so it's unit-testable.

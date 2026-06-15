@@ -9,14 +9,15 @@ All notable changes to this package are documented here. The format follows
 - **Custom inspector** for the `VisualEffect` component with the full toolset (Properties / Playback /
   Debug / Renderer / All tabs, persistent transport, scene gizmos, the per-particle spreadsheet + CSV
   export). It replaces Unity's stock VFX inspector (a non-Unity assembly's `[CustomEditor]` wins).
-- Per-tab **dockable popups** (tear-off): the component gear ▸ *VFX Control ▸ \<Tab\>* context menu, or
+- Per-tab **dockable popups** (tear-off): the component gear ▸ *VFX Inspector ▸ \<Tab\>* context menu, or
   right-clicking a tab inside the inspector, opens a native `PropertyEditor` filtered to that one tab.
 ### Changed
 - **Renamed** the package id `com.vfxtools.vfxcontrol` → **`com.vfxtools.vfxinspector`**, the editor
   assembly `VfxTools.VfxControl.Editor` → **`VfxTools.VfxInspector.Editor`**, the namespace
-  `VfxControl.EditorTools` → **`VfxInspector.EditorTools`**, and the controller/editor/state types
-  `VfxControl*` → `VfxInspector*`. The user-facing *VFX Control* name (menu labels, display name) is
-  unchanged. **Breaking:** consuming projects must update the package id in `Packages/manifest.json`.
+  `VfxControl.EditorTools` → **`VfxInspector.EditorTools`**, the controller/editor/state types
+  `VfxControl*` → `VfxInspector*`, and the user-facing name (display name + the *VFX Control* menu paths)
+  → **VFX Inspector**. **Breaking:** consuming projects must update the package id in
+  `Packages/manifest.json`.
 ### Removed
 - The dockable `EditorWindow` host (`VfxControlWindowHost`), its `Window ▸ VFX Control` menu, and the
   `IVfxHost` host abstraction — the custom inspector + per-tab popups replace the tear-off workflow.

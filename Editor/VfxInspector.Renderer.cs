@@ -1,4 +1,4 @@
-// VFX Control — Renderer tab (partial of VfxInspector).
+// VFX Inspector — Renderer tab (partial of VfxInspector).
 //
 // Exposes the sibling VFXRenderer's settings (the stock inspector's "Renderer" section):
 // Probes (Reflection/Light Probes + Proxy/Anchor overrides) and Additional Settings

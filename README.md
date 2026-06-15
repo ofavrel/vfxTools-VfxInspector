@@ -1,4 +1,4 @@
-# VFX Control
+# VFX Inspector
 
 A denser, more controllable editor for Unity's `VisualEffect` component, distributed as a UPM package.
 
@@ -26,8 +26,8 @@ from git URL…** with the repo URL).
 
 ## Usage
 Select a GameObject with a `VisualEffect` component — this inspector replaces Unity's stock one. To tear a
-single tab off into its own dockable window, use the component's **gear ▸ VFX Control ▸ \<Tab\>** menu (or
-right-click a tab inside the inspector). Diagnostics: **Tools ▸ VFX Control ▸ Diagnose Target**.
+single tab off into its own dockable window, use the component's **gear ▸ VFX Inspector ▸ \<Tab\>** menu (or
+right-click a tab inside the inspector). Diagnostics: **Tools ▸ VFX Inspector ▸ Diagnose Target**.
 
 The opt-in particle spreadsheet needs the graph instrumented with a Custom HLSL block pointing at
 `Packages/com.vfxtools.vfxinspector/Readback/VfxReadback.hlsl` — see the in-panel help and the

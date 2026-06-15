@@ -1,11 +1,11 @@
-// VFX Control — custom Inspector host for VisualEffect.
+// VFX Inspector — custom Inspector host for VisualEffect.
 //
 // Hosts the shared VfxInspector controller inside the Inspector instead of a window. Wins over the VFX
 // package's stock inspector (non-Unity assembly takes precedence — see Documentation~/VfxInspector.md).
 // Drives the edited set from Editor.targets (no scene-selection tracking) and routes gizmos via the
 // controller's scene-GUI hook.
 //
-// Per-tab popups (tear-off): either the component context menu (gear ▸ / right-click) "VFX Control ▸
+// Per-tab popups (tear-off): either the component context menu (gear ▸ / right-click) "VFX Inspector ▸
 // <Tab>" entries or right-clicking a tab inside the inspector open Unity's native dockable PropertyEditor
 // (EditorUtility.OpenPropertyEditor) filtered to one tab. The chosen tab is handed to the freshly created
 // inspector via a static "pending solo tab" (consumed in OnEnable), then the controller's solo machinery
@@ -36,7 +36,7 @@ namespace VfxInspector.EditorTools
 
         private void OnEnable()
         {
-            // Consume the hand-off from a "VFX Control ▸ <Tab>" context command, if this editor is the one
+            // Consume the hand-off from a "VFX Inspector ▸ <Tab>" context command, if this editor is the one
             // it just opened. A normal main-Inspector editor sees null here → full inspector.
             _soloTab = s_pendingSoloTab;
             s_pendingSoloTab = null;
@@ -71,10 +71,10 @@ namespace VfxInspector.EditorTools
         // The next VfxInspectorEditor created after one of these consumes it (see OnEnable).
         private static string s_pendingSoloTab;
 
-        [MenuItem("CONTEXT/VisualEffect/VFX Control/Properties")] private static void OpenProps(MenuCommand c) => OpenTab(c, "props");
-        [MenuItem("CONTEXT/VisualEffect/VFX Control/Playback")]   private static void OpenPlay(MenuCommand c) => OpenTab(c, "play");
-        [MenuItem("CONTEXT/VisualEffect/VFX Control/Renderer")]   private static void OpenRender(MenuCommand c) => OpenTab(c, "render");
-        [MenuItem("CONTEXT/VisualEffect/VFX Control/Debug")]      private static void OpenDebug(MenuCommand c) => OpenTab(c, "debug");
+        [MenuItem("CONTEXT/VisualEffect/VFX Inspector/Properties")] private static void OpenProps(MenuCommand c) => OpenTab(c, "props");
+        [MenuItem("CONTEXT/VisualEffect/VFX Inspector/Playback")]   private static void OpenPlay(MenuCommand c) => OpenTab(c, "play");
+        [MenuItem("CONTEXT/VisualEffect/VFX Inspector/Renderer")]   private static void OpenRender(MenuCommand c) => OpenTab(c, "render");
+        [MenuItem("CONTEXT/VisualEffect/VFX Inspector/Debug")]      private static void OpenDebug(MenuCommand c) => OpenTab(c, "debug");
 
         private static void OpenTab(MenuCommand command, string tab) => OpenTabPopup(command?.context, tab);
 
@@ -87,30 +87,30 @@ namespace VfxInspector.EditorTools
 
         // ---- diagnostics ----------------------------------------------------------------------------
         // Logs exactly where exposed-property enumeration succeeds or fails for the selected/target VFX.
-        [MenuItem("Tools/VFX Control/Diagnose Target")]
+        [MenuItem("Tools/VFX Inspector/Diagnose Target")]
         private static void Diagnose()
         {
             var go = Selection.activeGameObject;
             var ve = go != null ? go.GetComponent<VisualEffect>() : Selection.activeObject as VisualEffect;
             var asset = ve != null ? ve.visualEffectAsset : Selection.activeObject as VisualEffectAsset;
 
-            Debug.Log($"[VFX Control] Diagnose — component={(ve != null ? ve.name : "null")}, " +
+            Debug.Log($"[VFX Inspector] Diagnose — component={(ve != null ? ve.name : "null")}, " +
                       $"persistent={(ve != null && EditorUtility.IsPersistent(ve))}, " +
                       $"asset={(asset != null ? asset.name : "null")}");
-            Debug.Log($"[VFX Control] Binding: {VfxGraphReflection.DescribeBindingState()}");
+            Debug.Log($"[VFX Inspector] Binding: {VfxGraphReflection.DescribeBindingState()}");
 
             VfxGraphReflection.Verbose = true;
             try
             {
                 var ps = VfxGraphReflection.GetExposedParameters(asset);
-                Debug.Log($"[VFX Control] Enumerated {ps.Count} parameter(s): " +
+                Debug.Log($"[VFX Inspector] Enumerated {ps.Count} parameter(s): " +
                           string.Join(", ", ps.Select(p => $"{p.Name}[{p.SheetType}/{p.RealType}] cat='{p.Category}'")));
 
                 var evts = VfxGraphReflection.GetEventNames(asset);
-                Debug.Log($"[VFX Control] Custom events ({evts.Count}): {string.Join(", ", evts)}");
+                Debug.Log($"[VFX Inspector] Custom events ({evts.Count}): {string.Join(", ", evts)}");
 
                 var customs = VfxGraphReflection.GetCustomAttributes(asset);
-                Debug.Log($"[VFX Control] Custom attributes ({customs.Count}): " +
+                Debug.Log($"[VFX Inspector] Custom attributes ({customs.Count}): " +
                           string.Join(", ", customs.Select(c => $"{c.name}#{c.type}")));
             }
             finally { VfxGraphReflection.Verbose = false; }

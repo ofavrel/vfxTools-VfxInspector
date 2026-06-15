@@ -1,4 +1,4 @@
-// VFX Control — Properties tab (partial of VfxInspector).
+// VFX Inspector — Properties tab (partial of VfxInspector).
 //
 // Renders the exposed-parameter list: category groups, struct cards (flatten/inline/card
 // layouts), typed value controls bound through the property sheet, per-row reset/favorite/
