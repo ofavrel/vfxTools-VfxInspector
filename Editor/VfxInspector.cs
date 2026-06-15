@@ -1,12 +1,12 @@
-// VFX Control — the host-agnostic UI controller (built into VfxControlInspector's root).
+// VFX Control — the host-agnostic UI controller (built into VfxInspectorEditor's root).
 //
 // Implements the stock VisualEffect inspector replacement with the "Bold" layout from the design
-// handoff (Variant C). The custom editor (VfxControlInspector) wins over the VFX package's own
+// handoff (Variant C). The custom editor (VfxInspectorEditor) wins over the VFX package's own
 // AdvancedVisualEffectEditor because a non-Unity assembly's [CustomEditor] takes precedence.
 //
 // This core partial holds lifecycle, Rebuild/PopulateActiveTab/BuildChrome, the
 // tab/rail/chip/footer chrome, the All tab, the Favorites group, and shared helpers;
-// each tab (Properties/Playback/Debug/Renderer) lives in its own VfxControlWindow.<concern> partial.
+// each tab (Properties/Playback/Debug/Renderer) lives in its own VfxInspector.<concern> partial.
 
 using System;
 using System.Collections.Generic;
@@ -18,11 +18,11 @@ using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
-        private const string UssPath = "Packages/com.vfxtools.vfxcontrol/Editor/VfxControl.uss";
+        private const string UssPath = "Packages/com.vfxtools.vfxinspector/Editor/VfxInspector.uss";
         private const long kTickMs = 33; // ~30 fps clock (playback scrub + live stat refresh)
 
         // Debug ▸ Particles spreadsheet + scene overlay — a self-contained subsystem fed the current
@@ -30,7 +30,7 @@ namespace VfxControl.EditorTools
         private readonly VfxParticleReadback _readback = new VfxParticleReadback();
 
         // --- ui state ---
-        private VfxControlState _state;
+        private VfxInspectorState _state;
         private HashSet<string> _favorites = new HashSet<string>();
         private HashSet<string> _collapsed = new HashSet<string>();
         private HashSet<string> _constrained = new HashSet<string>(); // proportional-edit vectors
@@ -53,8 +53,8 @@ namespace VfxControl.EditorTools
 
         // The custom Inspector host provides the root element + tear-off state. IsSolo treats a
         // null/empty SoloTab as the full inspector; a per-tab popup reports its pinned tab → lean layout.
-        private readonly VfxControlInspector _inspector;
-        internal VfxControl(VfxControlInspector inspector) { _inspector = inspector; }
+        private readonly VfxInspectorEditor _inspector;
+        internal VfxInspector(VfxInspectorEditor inspector) { _inspector = inspector; }
         private bool IsSolo => !string.IsNullOrEmpty(_inspector.SoloTab);
         // persistent chrome containers: the search field is built ONCE (so typing never
         // loses focus); tabs/chips/rail/body are repopulated by PopulateActiveTab.
@@ -85,12 +85,12 @@ namespace VfxControl.EditorTools
             public bool HasDot;
         }
 
-        // Lifecycle, driven by VfxControlInspector. Enable wires the global editor hooks + the ~30fps
+        // Lifecycle, driven by VfxInspectorEditor. Enable wires the global editor hooks + the ~30fps
         // clock; the inspector then calls SetTargets + Rebuild. Disable tears it all down.
         public void Enable()
         {
-            _duration = VfxControlState.GetTimelineDuration();
-            _loop = VfxControlState.GetLoop();
+            _duration = VfxInspectorState.GetTimelineDuration();
+            _loop = VfxInspectorState.GetLoop();
             _lastTick = EditorApplication.timeSinceStartup;
             LoadPayloads(); // restore per-asset payloads before SetTarget picks the active list
             Undo.undoRedoPerformed += OnUndoRedo;

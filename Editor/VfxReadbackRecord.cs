@@ -8,7 +8,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
     internal static class VfxReadbackRecord
     {

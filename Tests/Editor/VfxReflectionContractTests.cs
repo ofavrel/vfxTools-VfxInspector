@@ -9,15 +9,15 @@ using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine.VFX;
-using VfxControl.EditorTools;
+using VfxInspector.EditorTools;
 
-namespace VfxControl.EditorTools.Tests
+namespace VfxInspector.EditorTools.Tests
 {
     public class VfxReflectionContractTests
     {
-        const string PropsPath = "Packages/com.vfxtools.vfxcontrol/Tests/Editor/VfxControl_Properties.vfx";
-        const string EventsPath = "Packages/com.vfxtools.vfxcontrol/Tests/Editor/VfxControl_Events.vfx";
-        const string MultiPath = "Packages/com.vfxtools.vfxcontrol/Tests/Editor/VfxControl_MultiSystem.vfx";
+        const string PropsPath = "Packages/com.vfxtools.vfxinspector/Tests/Editor/VfxInspector_Properties.vfx";
+        const string EventsPath = "Packages/com.vfxtools.vfxinspector/Tests/Editor/VfxInspector_Events.vfx";
+        const string MultiPath = "Packages/com.vfxtools.vfxinspector/Tests/Editor/VfxInspector_MultiSystem.vfx";
 
         static VisualEffectAsset Load(string path)
         {

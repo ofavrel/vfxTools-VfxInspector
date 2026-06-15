@@ -1,6 +1,6 @@
 {
-    "name": "VfxTools.VfxControl.Editor",
-    "rootNamespace": "VfxControl.EditorTools",
+    "name": "VfxTools.VfxInspector.Editor",
+    "rootNamespace": "VfxInspector.EditorTools",
     "references": [],
     "includePlatforms": [
         "Editor"

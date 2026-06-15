@@ -3,7 +3,7 @@
 A custom Unity Editor tool that replaces the stock `VisualEffect` inspector with a
 denser, more controllable UI (the "Bold"/Variant C design from
 `Docs/design_handoff_vfx_inspector/README.md`). It's a **`[CustomEditor(typeof(VisualEffect))]`**
-(`VfxControlInspector`) that wins over the VFX package's own `AdvancedVisualEffectEditor` because a
+(`VfxInspectorEditor`) that wins over the VFX package's own `AdvancedVisualEffectEditor` because a
 non-Unity assembly's editor takes precedence. (It began life as a dockable `EditorWindow`; that host
 has been retired — the inspector + native per-tab popups now cover everything it did.)
 
@@ -12,8 +12,8 @@ has been retired — the inspector + native per-tab popups now cover everything 
   `PropertyEditor` popup via the component gear ▸ **`VFX Control ▸ <Tab>`** or by right-clicking a tab.
   Diagnostic: **`Tools ▸ VFX Control ▸ Diagnose Target`** (logs how the target VFX's exposed properties
   enumerate — keep for debugging).
-- All code is editor-only under `Assets/VfxControl/Editor/`, compiled by
-  **`VfxControl.Editor.asmdef`** (`includePlatforms: ["Editor"]`, `references: []`). It needs no
+- All code is editor-only under `Assets/VfxInspector/Editor/`, compiled by
+  **`VfxInspector.Editor.asmdef`** (`includePlatforms: ["Editor"]`, `references: []`). It needs no
   package references: the compile-time VFX types (`VisualEffect`/`VisualEffectAsset`/`VFXRenderer`/
   `VFXEventAttribute`) are in the **built-in** `UnityEngine.VFXModule`, and every *editor-internal*
   VFX type is reached by reflection strings (so the package editor assembly is loaded at runtime,
@@ -21,9 +21,9 @@ has been retired — the inspector + native per-tab popups now cover everything 
 
 ## Files
 
-- **`VfxControlWindow.cs`** + **`VfxControlWindow.<concern>.cs`** — the window, split into
-  one `partial class VfxControlWindow` per concern (same class, shared private state — the
-  split is purely for navigability, no behavior change). The core `VfxControlWindow.cs` holds
+- **`VfxInspector.cs`** + **`VfxInspector.<concern>.cs`** — the window, split into
+  one `partial class VfxInspector` per concern (same class, shared private state — the
+  split is purely for navigability, no behavior change). The core `VfxInspector.cs` holds
   lifecycle, `Rebuild`/`PopulateActiveTab`/`BuildChrome`, the tab/rail/chip/footer chrome, the
   All tab, favorites group, and small shared helpers. The concern partials:
   - **`.Targeting.cs`** — selection → editable scene VFX (single/multi sharing one asset),
@@ -78,11 +78,11 @@ has been retired — the inspector + native per-tab popups now cover everything 
   (`NameField`/`ValueField`/`OverriddenField`); the per-type read+write is one `s_TypeBridge`
   table (`SerializedPropertyType` → `(Read, Write)`), so each supported type is described once
   (Color→Vector4 and uint→long round-trips noted there).
-- **`VfxControlState.cs`** — persistence: favorites/collapsed/constrained per asset GUID
+- **`VfxInspectorState.cs`** — persistence: favorites/collapsed/constrained per asset GUID
   (`EditorPrefs`); tab/filter/category/search (`SessionState`); global timeline duration.
 - **`VfxClipboard.cs`** — reflection wrapper over internal `UnityEditor.Clipboard` for
   Inspector-interop copy/paste.
-- **`VfxControl.uss`** — styling, bound to built-in `--unity-*` theme variables. The few
+- **`VfxInspector.uss`** — styling, bound to built-in `--unity-*` theme variables. The few
   hand-authored colors are named custom properties on `.vfx-root` (`--vfx-star`/`--vfx-warn`/
   `--vfx-bolt`, inherited via `var()`); the category accent dots are a separate per-name palette
   set inline from C#.
@@ -92,8 +92,8 @@ has been retired — the inspector + native per-tab popups now cover everything 
   buffer at a **stable slot** keyed by `systemId`/`instanceId`/`particleId` (so multiple systems +
   instances never clobber each other); the window reads it back (see Debug tab below). Wire `instanceId`
   (auto-assigned) + a per-block `systemId` constant (per the in-panel legend).
-- **`Editor/Tests/`** — EditMode test suite (UTF; `VfxControl.Editor.Tests.asmdef`, internals exposed
-  via `Editor/AssemblyInfo.cs` → `InternalsVisibleTo`). `VfxControlStateTests` (prefs/set
+- **`Editor/Tests/`** — EditMode test suite (UTF; `VfxInspector.Editor.Tests.asmdef`, internals exposed
+  via `Editor/AssemblyInfo.cs` → `InternalsVisibleTo`). `VfxInspectorStateTests` (prefs/set
   serialization, duration clamp — isolated via a throwaway GUID + save/restore), `VfxPropertySheetTests`
   (override set/get/reset + Color→Vector4, on a throwaway `VisualEffect`), and `VfxReflectionContractTests`
   — the **package-update canary** (`BindingResolves` asserts `available=True`; param types, event
@@ -101,7 +101,7 @@ has been retired — the inspector + native per-tab popups now cover everything 
   tests** (no fixture): `VfxConstrainTests`, `VfxReadbackRecordTests` (incl. an offset-contract test
   guarding `.hlsl` drift), `VfxPropertyLayoutTests`. Fixture-dependent tests `Assert.Ignore` when
   their `.vfx` fixture is absent; the authored fixtures live alongside the tests
-  (`Assets/VfxControl/Editor/Tests/VfxControl_Properties|Events|MultiSystem.vfx` — under `Editor/` so
+  (`Assets/VfxInspector/Editor/Tests/VfxInspector_Properties|Events|MultiSystem.vfx` — under `Editor/` so
   they stay out of builds). Run via **Window ▸ General ▸ Test Runner ▸ EditMode**.
 
 ## Ground truth (verified against the VFX package source — do NOT re-guess)
@@ -192,7 +192,7 @@ name for display, bold/`<b>` when used as a header), `SheetType`, `RealType`, `C
   generalizes the old category rail: Properties→categories, Renderer→Probes/Additional,
   Playback→"Playback options"/"Send Event"; Debug→"Live statistics"/"Systems"/"Visualizers"
   (`DebugSections`); selection is **per-tab** in `_sections` (packed into
-  `VfxControlState.Sections`, migrating the legacy `Category`). `CurrentSection()` returns
+  `VfxInspectorState.Sections`, migrating the legacy `Category`). `CurrentSection()` returns
   "all" for tabs without a rail. The Playback/Renderer/Debug/Send-Event sections share one
   collapsible `.vfx-group` builder — **`AddGroupShell(host, key, title, count, forceOpen)`** →
   `(header, content, open)` (the header twirl/title/optional-count + the `ToggleCollapse(key)`
@@ -201,9 +201,9 @@ name for display, bold/`<b>` when used as a header), `SheetType`, `RealType`, `C
   Properties+Renderer+Playback stacked with no rail (`BuildAllTab`). **Tab tear-off (per-tab popup)**:
   the component gear ▸ **`VFX Control ▸ <Tab>`** context entries, or right-clicking a focused tab (not
   "All") → **"Open in new window"** (`ContextualMenuManipulator` → `IVfxHost.OpenSolo`), both call
-  `VfxControlInspector.OpenTabPopup` → set a static **pending solo tab** + `EditorUtility.OpenPropertyEditor`,
+  `VfxInspectorEditor.OpenTabPopup` → set a static **pending solo tab** + `EditorUtility.OpenPropertyEditor`,
   opening Unity's native dockable `PropertyEditor` filtered to that one tab. The freshly created
-  `VfxControlInspector` consumes the pending tab in `OnEnable` into its `_soloTab`; every "is solo" test
+  `VfxInspectorEditor` consumes the pending tab in `OnEnable` into its `_soloTab`; every "is solo" test
   goes through **`IsSolo` (`!string.IsNullOrEmpty(_host.SoloTab)`)** — null/empty is the *full* inspector.
   A solo popup hides the tab strip (`PopulateTabs` early-out) and forces `_tab` (clamped right after
   `_tab = _state.Tab` in `SetTarget`, so it follows selection without ever writing the shared `_state.Tab`).

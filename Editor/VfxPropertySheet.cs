@@ -16,7 +16,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
     internal static class VfxPropertySheet
     {

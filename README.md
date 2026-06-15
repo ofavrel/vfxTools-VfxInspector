@@ -28,8 +28,8 @@ from git URL…** with the repo URL).
 Open **Window ▸ VFX Control**, then select a GameObject with a `VisualEffect` in the scene.
 
 The opt-in particle spreadsheet needs the graph instrumented with a Custom HLSL block pointing at
-`Packages/com.vfxtools.vfxcontrol/Readback/VfxReadback.hlsl` — see the in-panel help and the
-architecture notes in `Documentation~/VfxControl.md`.
+`Packages/com.vfxtools.vfxinspector/Readback/VfxReadback.hlsl` — see the in-panel help and the
+architecture notes in `Documentation~/VfxInspector.md`.
 
 ## License
 MIT — see [LICENSE.md](LICENSE.md).

@@ -18,7 +18,7 @@ using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
     // Opt-in per-particle attribute spreadsheet + scene overlay. See Readback/VfxReadback.hlsl.
     // The graph is instrumented (Custom HLSL block, one `instanceId` input) so each particle writes
@@ -244,7 +244,7 @@ namespace VfxControl.EditorTools
             _readbackHelp = MakeElement("vfx-helpbox");
             _readbackHelp.Add(new Label(
                 "No readback data. Add a Custom HLSL block (function VfxReadback) pointing at " +
-                "Packages/com.vfxtools.vfxcontrol/Readback/VfxReadback.hlsl in this system's Update or Output context. For " +
+                "Packages/com.vfxtools.vfxinspector/Readback/VfxReadback.hlsl in this system's Update or Output context. For " +
                 "separate per-instance rows, expose an Int property named VfxReadbackInstanceId and wire it to " +
                 "the block's instanceId input (the window auto-assigns ids). To debug several systems at once, " +
                 "put a block in each system and wire each block's systemId to a distinct constant per the legend. " +

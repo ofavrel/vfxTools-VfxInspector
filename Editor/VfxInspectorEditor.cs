@@ -1,7 +1,7 @@
 // VFX Control — custom Inspector host for VisualEffect.
 //
-// Hosts the shared VfxControl controller inside the Inspector instead of a window. Wins over the VFX
-// package's stock inspector (non-Unity assembly takes precedence — see Documentation~/VfxControl.md).
+// Hosts the shared VfxInspector controller inside the Inspector instead of a window. Wins over the VFX
+// package's stock inspector (non-Unity assembly takes precedence — see Documentation~/VfxInspector.md).
 // Drives the edited set from Editor.targets (no scene-selection tracking) and routes gizmos via the
 // controller's scene-GUI hook.
 //
@@ -18,13 +18,13 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEngine.VFX;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
     [CustomEditor(typeof(VisualEffect))]
     [CanEditMultipleObjects]
-    public sealed class VfxControlInspector : Editor
+    public sealed class VfxInspectorEditor : Editor
     {
-        private VfxControl _ctrl;
+        private VfxInspector _ctrl;
         private VisualElement _root;
         private string _soloTab; // non-null in a per-tab popup; null for the normal (full) inspector
 
@@ -46,7 +46,7 @@ namespace VfxControl.EditorTools
         {
             _ctrl?.Disable();                    // guard against a re-bind creating a second controller
             _root = new VisualElement();
-            _ctrl = new VfxControl(this);
+            _ctrl = new VfxInspector(this);
             _ctrl.Enable();
             _ctrl.SetTargets(GetTargets());      // fixed targets, not scene selection
             _ctrl.Rebuild();
@@ -68,7 +68,7 @@ namespace VfxControl.EditorTools
         }
 
         // ---- per-tab dockable popups (component context menu) ----------------------------------------
-        // The next VfxControlInspector created after one of these consumes it (see OnEnable).
+        // The next VfxInspectorEditor created after one of these consumes it (see OnEnable).
         private static string s_pendingSoloTab;
 
         [MenuItem("CONTEXT/VisualEffect/VFX Control/Properties")] private static void OpenProps(MenuCommand c) => OpenTab(c, "props");

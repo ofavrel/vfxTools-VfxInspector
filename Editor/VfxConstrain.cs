@@ -5,7 +5,7 @@
 
 using UnityEngine;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
     internal static class VfxConstrain
     {

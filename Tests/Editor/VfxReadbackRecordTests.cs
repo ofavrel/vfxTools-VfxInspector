@@ -4,11 +4,11 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
-using VfxControl.EditorTools;
-using Attr = VfxControl.EditorTools.VfxReadbackRecord.Attr;
-using Kind = VfxControl.EditorTools.VfxReadbackRecord.Kind;
+using VfxInspector.EditorTools;
+using Attr = VfxInspector.EditorTools.VfxReadbackRecord.Attr;
+using Kind = VfxInspector.EditorTools.VfxReadbackRecord.Kind;
 
-namespace VfxControl.EditorTools.Tests
+namespace VfxInspector.EditorTools.Tests
 {
     public class VfxReadbackRecordTests
     {

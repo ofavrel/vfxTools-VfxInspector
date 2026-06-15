@@ -1,8 +1,8 @@
 {
-    "name": "VfxTools.VfxControl.Editor.Tests",
-    "rootNamespace": "VfxControl.EditorTools.Tests",
+    "name": "VfxTools.VfxInspector.Editor.Tests",
+    "rootNamespace": "VfxInspector.EditorTools.Tests",
     "references": [
-        "VfxTools.VfxControl.Editor",
+        "VfxTools.VfxInspector.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

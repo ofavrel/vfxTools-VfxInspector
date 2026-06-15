@@ -1,10 +1,10 @@
-// VFX Control — Renderer tab (partial of VfxControlWindow).
+// VFX Control — Renderer tab (partial of VfxInspector).
 //
 // Exposes the sibling VFXRenderer's settings (the stock inspector's "Renderer" section):
 // Probes (Reflection/Light Probes + Proxy/Anchor overrides) and Additional Settings
 // (Rendering Layer Mask, Priority, Sorting Layer/Order). Built as UIToolkit rows sharing
 // the property tab's chrome, bound to a multi-renderer SerializedObject. Split out of
-// VfxControlWindow.cs — same class (partial), shared private state.
+// VfxInspector.cs — same class (partial), shared private state.
 
 using System;
 using System.Collections.Generic;
@@ -17,9 +17,9 @@ using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
         // ------------------------------------------------------------------ renderer tab
 

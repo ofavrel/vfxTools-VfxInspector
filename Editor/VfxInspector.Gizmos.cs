@@ -1,9 +1,9 @@
-// VFX Control — scene-view gizmos (partial of VfxControlWindow).
+// VFX Control — scene-view gizmos (partial of VfxInspector).
 //
 // Custom Handles-based editing for spaceable struct properties: Position, Direction,
 // Vector, AABox, Line, Plane, plus the shape gizmos (Cone/Sphere/Circle/Torus + Arc
 // variants, OrientedBox, Transform). VFX's own gizmos are internal/unusable, so these
-// reimplement them on the public Handles API. Split out of VfxControlWindow.cs for
+// reimplement them on the public Handles API. Split out of VfxInspector.cs for
 // navigability — same class (partial), shared private state.
 
 using System;
@@ -15,9 +15,9 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
         // scene-view edit gizmo (custom Handles) for spaceable Position/Direction/Box
         private VfxExposedParam _gizmoStruct;

@@ -1,10 +1,10 @@
-// VFX Control — Debug tab (partial of VfxControlWindow).
+// VFX Control — Debug tab (partial of VfxInspector).
 //
 // Live runtime statistics (alive/efficiency/bounds/state), CPU/GPU profiling markers,
 // per-system capacity bars + attribute-layout/memory, texture usage, and the Show Bounds
 // visualizer. Live counts are public runtime API; the profiling/layout extras are reached
 // by reflection (VfxGraphReflection) and degrade to "—". The particle spreadsheet lives in
-// the Readback partial. Split out of VfxControlWindow.cs — same class (partial), shared state.
+// the Readback partial. Split out of VfxInspector.cs — same class (partial), shared state.
 
 using System;
 using System.Collections.Generic;
@@ -16,9 +16,9 @@ using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
         // --- Debug tab live stat refs (rebuilt with the body; refreshed in place by UpdateLive) ---
         private Label _dbgAlive, _dbgAliveCap, _dbgEff, _dbgSystems, _dbgBounds, _dbgState;

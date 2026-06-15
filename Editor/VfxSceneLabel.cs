@@ -1,6 +1,6 @@
 // VFX Control — shared scene-view text label (translucent rounded box + rich text).
 //
-// Used by both the gizmo labels (VfxControlWindow.Gizmos) and the particle overlay
+// Used by both the gizmo labels (VfxInspector.Gizmos) and the particle overlay
 // (VfxParticleReadback), so it lives here as a static helper owned by neither. State (the
 // shared GUIStyle + one background texture per color) is static — one cache for all windows.
 
@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
     internal static class VfxSceneLabel
     {

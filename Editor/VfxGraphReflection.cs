@@ -21,7 +21,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.VFX;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
     /// One exposed, editable leaf property of a VisualEffectAsset.
     internal sealed class VfxExposedParam

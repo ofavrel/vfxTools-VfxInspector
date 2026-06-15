@@ -1,10 +1,10 @@
-// VFX Control — Playback tab + transport (partial of VfxControlWindow).
+// VFX Control — Playback tab + transport (partial of VfxInspector).
 //
 // The persistent mini-transport (scrub bar, play/pause/step/loop, Rate slider) and the
 // Playback tab's "Playback options" section: Duration, Start Seed (+ Reseed), Reseed on
 // Play, Initial Event — modelled as PField descriptors over live component props / tool
 // prefs. The "Send Event" section it hosts lives in the Events partial. Split out of
-// VfxControlWindow.cs — same class (partial), shared private state.
+// VfxInspector.cs — same class (partial), shared private state.
 
 using System;
 using System.Collections.Generic;
@@ -15,9 +15,9 @@ using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
         // configurable timeline/scrub window length (Playback tab); the play clock
         // fills the bar over this many seconds and then loops (or stops, if _loop is off).
@@ -80,7 +80,7 @@ namespace VfxControl.EditorTools
             _loopBtn = MakeTransportButton(_loop ? "Looping (click to stop at end)" : "Stop at end (click to loop)", null, () =>
             {
                 _loop = !_loop;
-                VfxControlState.SetLoop(_loop);
+                VfxInspectorState.SetLoop(_loop);
                 _loopBtn.EnableInClassList("vfx-tbtn--on", _loop);
                 _loopBtn.tooltip = _loop ? "Looping (click to stop at end)" : "Stop at end (click to loop)";
                 UpdateLive();
@@ -161,14 +161,14 @@ namespace VfxControl.EditorTools
                     Id = "duration", Label = "Duration (s)",
                     Tooltip = "Length of the play/scrub timeline window before it loops.",
                     IsModified = () => !Mathf.Approximately(_duration, kDefaultDuration),
-                    Reset = () => { _duration = kDefaultDuration; VfxControlState.SetTimelineDuration(_duration); UpdateLive(); },
+                    Reset = () => { _duration = kDefaultDuration; VfxInspectorState.SetTimelineDuration(_duration); UpdateLive(); },
                     BuildControl = () =>
                     {
                         var f = new FloatField { value = _duration };
                         f.RegisterValueChangedCallback(e =>
                         {
                             _duration = Mathf.Max(0.1f, e.newValue);
-                            VfxControlState.SetTimelineDuration(_duration);
+                            VfxInspectorState.SetTimelineDuration(_duration);
                             UpdateLive();
                             RefreshPlaybackRows();
                         });

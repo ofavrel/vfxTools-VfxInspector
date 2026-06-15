@@ -3,9 +3,9 @@
 
 using System.Collections.Generic;
 using NUnit.Framework;
-using VfxControl.EditorTools;
+using VfxInspector.EditorTools;
 
-namespace VfxControl.EditorTools.Tests
+namespace VfxInspector.EditorTools.Tests
 {
     public class VfxPropertyLayoutTests
     {

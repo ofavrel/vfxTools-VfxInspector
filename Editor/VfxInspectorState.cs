@@ -8,15 +8,15 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    internal sealed class VfxControlState
+    internal sealed class VfxInspectorState
     {
         private const string Prefix = "vfxctrl";
 
         private readonly string _guid; // asset GUID, or "none"
 
-        public VfxControlState(string assetGuid)
+        public VfxInspectorState(string assetGuid)
         {
             _guid = string.IsNullOrEmpty(assetGuid) ? "none" : assetGuid;
         }

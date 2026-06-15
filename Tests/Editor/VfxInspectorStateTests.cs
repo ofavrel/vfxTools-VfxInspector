@@ -1,4 +1,4 @@
-// EditMode tests for VfxControlState — the UI-state persistence layer.
+// EditMode tests for VfxInspectorState — the UI-state persistence layer.
 //
 // Focused on the logic unique to our code: the per-asset set serialization (EditorPrefs, '\n'
 // joined/split) and the global timeline-duration clamp + loop default. The trivial SessionState
@@ -9,11 +9,11 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEditor;
-using VfxControl.EditorTools;
+using VfxInspector.EditorTools;
 
-namespace VfxControl.EditorTools.Tests
+namespace VfxInspector.EditorTools.Tests
 {
-    public class VfxControlStateTests
+    public class VfxInspectorStateTests
     {
         string _guid;
         float _origDuration;
@@ -23,80 +23,80 @@ namespace VfxControl.EditorTools.Tests
         public void SetUp()
         {
             _guid = System.Guid.NewGuid().ToString("N"); // isolated per-asset namespace
-            _origDuration = VfxControlState.GetTimelineDuration();
-            _origLoop = VfxControlState.GetLoop();
+            _origDuration = VfxInspectorState.GetTimelineDuration();
+            _origLoop = VfxInspectorState.GetLoop();
         }
 
         [TearDown]
         public void TearDown()
         {
-            // per-asset keys this fixture may have written (format mirrors VfxControlState)
+            // per-asset keys this fixture may have written (format mirrors VfxInspectorState)
             EditorPrefs.DeleteKey($"vfxctrl.{_guid}.favorites");
             EditorPrefs.DeleteKey($"vfxctrl.{_guid}.collapsed");
             EditorPrefs.DeleteKey($"vfxctrl.{_guid}.constrained");
             // restore the globals we touched
-            VfxControlState.SetTimelineDuration(_origDuration);
-            VfxControlState.SetLoop(_origLoop);
+            VfxInspectorState.SetTimelineDuration(_origDuration);
+            VfxInspectorState.SetLoop(_origLoop);
         }
 
         [Test]
         public void Favorites_RoundTrip_PreservesAllEntries()
         {
-            var state = new VfxControlState(_guid);
+            var state = new VfxInspectorState(_guid);
             var saved = new HashSet<string> { "prop:Mass", "renderer:m_Priority", "play:sendevent" };
             state.SaveFavorites(saved);
 
-            var loaded = new VfxControlState(_guid).LoadFavorites();
+            var loaded = new VfxInspectorState(_guid).LoadFavorites();
             Assert.That(loaded, Is.EquivalentTo(saved));
         }
 
         [Test]
         public void Collapsed_RoundTrip_HandlesStructKeysWithColons()
         {
-            var state = new VfxControlState(_guid);
+            var state = new VfxInspectorState(_guid);
             // keys contain ':' (e.g. "struct:Bounds", "debug:live") — must survive the '\n' serialization
             var saved = new HashSet<string> { "struct:Bounds", "debug:live", "Favorites" };
             state.SaveCollapsed(saved);
 
-            Assert.That(new VfxControlState(_guid).LoadCollapsed(), Is.EquivalentTo(saved));
+            Assert.That(new VfxInspectorState(_guid).LoadCollapsed(), Is.EquivalentTo(saved));
         }
 
         [Test]
         public void Constrained_EmptySet_RoundTripsToEmpty()
         {
-            var state = new VfxControlState(_guid);
+            var state = new VfxInspectorState(_guid);
             state.SaveConstrained(new HashSet<string>());
-            Assert.That(new VfxControlState(_guid).LoadConstrained(), Is.Empty);
+            Assert.That(new VfxInspectorState(_guid).LoadConstrained(), Is.Empty);
         }
 
         [Test]
         public void LoadFavorites_UntouchedAsset_IsEmpty()
         {
             // a fresh GUID has nothing stored
-            Assert.That(new VfxControlState(_guid).LoadFavorites(), Is.Empty);
+            Assert.That(new VfxInspectorState(_guid).LoadFavorites(), Is.Empty);
         }
 
         [Test]
         public void TimelineDuration_ClampsToMinimum()
         {
-            VfxControlState.SetTimelineDuration(0.0001f);
-            Assert.That(VfxControlState.GetTimelineDuration(), Is.EqualTo(0.1f).Within(1e-4f));
+            VfxInspectorState.SetTimelineDuration(0.0001f);
+            Assert.That(VfxInspectorState.GetTimelineDuration(), Is.EqualTo(0.1f).Within(1e-4f));
         }
 
         [Test]
         public void TimelineDuration_NormalValue_RoundTrips()
         {
-            VfxControlState.SetTimelineDuration(7.5f);
-            Assert.That(VfxControlState.GetTimelineDuration(), Is.EqualTo(7.5f).Within(1e-4f));
+            VfxInspectorState.SetTimelineDuration(7.5f);
+            Assert.That(VfxInspectorState.GetTimelineDuration(), Is.EqualTo(7.5f).Within(1e-4f));
         }
 
         [Test]
         public void Loop_RoundTrips()
         {
-            VfxControlState.SetLoop(false);
-            Assert.That(VfxControlState.GetLoop(), Is.False);
-            VfxControlState.SetLoop(true);
-            Assert.That(VfxControlState.GetLoop(), Is.True);
+            VfxInspectorState.SetLoop(false);
+            Assert.That(VfxInspectorState.GetLoop(), Is.False);
+            VfxInspectorState.SetLoop(true);
+            Assert.That(VfxInspectorState.GetLoop(), Is.True);
         }
     }
 }

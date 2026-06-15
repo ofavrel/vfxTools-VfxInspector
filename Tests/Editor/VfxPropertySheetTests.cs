@@ -1,6 +1,6 @@
 // EditMode tests for VfxPropertySheet — read/write of the VisualEffect's m_PropertySheet overrides.
 //
-// Runs against Fixture 1 (VfxControl_Properties.vfx). A throwaway HideAndDontSave VisualEffect is
+// Runs against Fixture 1 (VfxInspector_Properties.vfx). A throwaway HideAndDontSave VisualEffect is
 // bound to the asset in SetUp and destroyed in TearDown. Every test Assert.Ignore()s if the fixture
 // (or an expected param) isn't authored yet, so the file is green until the .vfx lands.
 
@@ -9,13 +9,13 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.VFX;
-using VfxControl.EditorTools;
+using VfxInspector.EditorTools;
 
-namespace VfxControl.EditorTools.Tests
+namespace VfxInspector.EditorTools.Tests
 {
     public class VfxPropertySheetTests
     {
-        const string FixturePath = "Packages/com.vfxtools.vfxcontrol/Tests/Editor/VfxControl_Properties.vfx";
+        const string FixturePath = "Packages/com.vfxtools.vfxinspector/Tests/Editor/VfxInspector_Properties.vfx";
 
         VisualEffectAsset _asset;
         GameObject _go;

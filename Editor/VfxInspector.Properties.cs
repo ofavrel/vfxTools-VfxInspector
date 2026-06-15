@@ -1,10 +1,10 @@
-// VFX Control — Properties tab (partial of VfxControlWindow).
+// VFX Control — Properties tab (partial of VfxInspector).
 //
 // Renders the exposed-parameter list: category groups, struct cards (flatten/inline/card
 // layouts), typed value controls bound through the property sheet, per-row reset/favorite/
 // copy-paste, the constrain-proportions lock, category accent colors, the category enable
 // gate, and the read-only space icon. The All tab reuses PopulateProperties. Split out of
-// VfxControlWindow.cs — same class (partial), shared private state.
+// VfxInspector.cs — same class (partial), shared private state.
 
 using System;
 using System.Collections.Generic;
@@ -15,9 +15,9 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
         // property name -> actions that re-read the value into each control showing it,
         // so a pinned card and its category row (etc.) stay in sync after any edit.

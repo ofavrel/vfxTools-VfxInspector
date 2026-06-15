@@ -1,9 +1,9 @@
-// VFX Control — Send Event + event payload editor (partial of VfxControlWindow).
+// VFX Control — Send Event + event payload editor (partial of VfxInspector).
 //
 // The Playback tab's "Send Event" section: quick-chips (OnPlay/OnStop + every graph Event
 // block) and a reorderable payload editor (name · type · value rows over a VFXEventAttribute,
 // modelled on the package's Event Tester). Built-in, graph-custom, and free-custom row kinds;
-// payload scoped per asset and persisted in SessionState. Split out of VfxControlWindow.cs —
+// payload scoped per asset and persisted in SessionState. Split out of VfxInspector.cs —
 // same class (partial), shared private state.
 
 using System;
@@ -16,9 +16,9 @@ using UnityEngine.UIElements;
 using UnityEngine.VFX;
 using Object = UnityEngine.Object;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
         // Favorite key for the whole Send Event section (it's an action surface, not a per-row
         // setting, so it pins as one unit into the Favorites group).

@@ -1,18 +1,18 @@
-// VFX Control — target binding & multi-instance editing (partial of VfxControlWindow).
+// VFX Control — target binding & multi-instance editing (partial of VfxInspector).
 //
 // Binds the inspected VisualEffect(s) (the editor's targets, several sharing one asset for
 // multi-edit) to a SerializedObject per instance, and routes all writes through
 // SetValueAll/ResetAll so multi-edit stays index-safe. Also the per-tab rail section
-// persistence. Split out of VfxControlWindow.cs — same class (partial), shared private state.
+// persistence. Split out of VfxInspector.cs — same class (partial), shared private state.
 
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine.VFX;
 
-namespace VfxControl.EditorTools
+namespace VfxInspector.EditorTools
 {
-    public partial class VfxControl
+    public partial class VfxInspector
     {
         // --- target ---
         private VisualEffect _effect;        // primary (drives display + property enumeration)
@@ -82,7 +82,7 @@ namespace VfxControl.EditorTools
             }
             _eventPayload = payload;
 
-            _state = new VfxControlState(guid);
+            _state = new VfxInspectorState(guid);
             _favorites = _state.LoadFavorites();
             MigrateFavorites();
             _collapsed = _state.LoadCollapsed();

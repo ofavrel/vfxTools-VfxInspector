@@ -2,9 +2,9 @@
 
 using NUnit.Framework;
 using UnityEngine;
-using VfxControl.EditorTools;
+using VfxInspector.EditorTools;
 
-namespace VfxControl.EditorTools.Tests
+namespace VfxInspector.EditorTools.Tests
 {
     public class VfxConstrainTests
     {
