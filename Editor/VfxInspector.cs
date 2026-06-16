@@ -204,7 +204,7 @@ namespace VfxInspector.EditorTools
                 new TabDef { Id = "all", Label = "All", HasRail = false, Build = BuildAllTab, ChipCounts = AllChipCounts },
                 new TabDef
                 {
-                    Id = "props", Label = "Properties", Count = _params.Count(p => !p.IsStruct),
+                    Id = "props", Label = "Properties", Count = VisibleParams().Count(p => !p.IsStruct),
                     HasRail = true, Sections = PropertySections,
                     Build = body => { AddFavoriteGroup(body, includeProps: true, null); PopulateProperties(body); },
                     ChipCounts = PropertyChipCounts,
@@ -222,10 +222,13 @@ namespace VfxInspector.EditorTools
             return tabs;
         }
 
-        private (int leaf, int fav, int mod) PropertyChipCounts() => (
-            _params.Count(p => !p.IsStruct),
-            _params.Count(p => !p.IsStruct && IsFav(FavKeyOf(p))),
-            VfxPropertySheet.CountModified(_so, _params));
+        private (int leaf, int fav, int mod) PropertyChipCounts()
+        {
+            var vis = VisibleParams().ToList(); // exclude the hidden readback property from all badges
+            return (vis.Count(p => !p.IsStruct),
+                    vis.Count(p => !p.IsStruct && IsFav(FavKeyOf(p))),
+                    VfxPropertySheet.CountModified(_so, vis));
+        }
 
         // The All tab aggregates properties + renderer (playback has no fav/mod model yet).
         private (int leaf, int fav, int mod) AllChipCounts()
@@ -245,7 +248,7 @@ namespace VfxInspector.EditorTools
         private List<SectionDef> PropertySections()
         {
             var cats = new List<string>();
-            foreach (var p in _params)
+            foreach (var p in VisibleParams())
             {
                 var cat = CategoryOf(p);
                 if (!cats.Contains(cat)) cats.Add(cat);
