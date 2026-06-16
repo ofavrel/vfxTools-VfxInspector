@@ -177,19 +177,7 @@ namespace VfxInspector.EditorTools
         }
 
         // Short type labels (used in the type dropdowns + the add menu) to save horizontal space.
-        private static string AttrTypeLabel(EventAttrType t)
-        {
-            switch (t)
-            {
-                case EventAttrType.Vector2: return "Vec 2";
-                case EventAttrType.Vector3: return "Vec 3";
-                case EventAttrType.Vector4: return "Vec 4";
-                case EventAttrType.Bool: return "Bool";
-                case EventAttrType.Uint: return "Uint";
-                case EventAttrType.Int: return "Int";
-                default: return "Float";
-            }
-        }
+        private static string AttrTypeLabel(EventAttrType t) => VfxEventAttrType.Info[t].Label;
 
         // Custom-attribute type choices, in dropdown order (Float, V2, V3, V4, Bool, Uint, Int).
         private static readonly List<EventAttrType> s_AttrTypes = new List<EventAttrType>
@@ -242,17 +230,7 @@ namespace VfxInspector.EditorTools
         // The blackboard type icon for a payload type (Uint/Int share "Integer"; Bool → "Boolean").
         private static Texture2D AttrTypeIcon(EventAttrType t)
         {
-            string name;
-            switch (t)
-            {
-                case EventAttrType.Vector2: name = "Vector2"; break;
-                case EventAttrType.Vector3: name = "Vector3"; break;
-                case EventAttrType.Vector4: name = "Vector4"; break;
-                case EventAttrType.Bool: name = "Boolean"; break;
-                case EventAttrType.Uint:
-                case EventAttrType.Int: name = "Integer"; break;
-                default: name = "Float"; break;
-            }
+            string name = VfxEventAttrType.Info[t].IconName;
             const string dir = "Packages/com.unity.visualeffectgraph/Editor/UIResources/VFX/types/";
             var tex = EditorGUIUtility.isProSkin
                 ? AssetDatabase.LoadAssetAtPath<Texture2D>($"{dir}d_{name}@2x.png")
@@ -273,49 +251,52 @@ namespace VfxInspector.EditorTools
                 return f;
             }
 
+            // Widgets are genuinely type-specific (Toggle vs Vector3Field …) so the factory stays a
+            // switch, but the "read the current value out of the boxed model" step delegates to the
+            // shared coercer in VfxEventAttrType so the narrowing rules live in one place.
             switch (a.Type)
             {
                 case EventAttrType.Bool:
                 {
-                    var f = new Toggle { value = a.Value is bool b && b };
+                    var f = new Toggle { value = (bool)VfxEventAttrType.Info[a.Type].Coerce(a.Value) };
                     f.RegisterValueChangedCallback(e => a.Value = e.newValue);
                     return f;
                 }
                 case EventAttrType.Int:
                 {
-                    var f = new IntegerField { value = a.Value is int i ? i : 0 };
+                    var f = new IntegerField { value = (int)VfxEventAttrType.Info[a.Type].Coerce(a.Value) };
                     f.RegisterValueChangedCallback(e => a.Value = e.newValue);
                     new FieldMouseDragger<int>(f).SetDragZone(f); // drag-scrub like the vector components
                     return f;
                 }
                 case EventAttrType.Uint:
                 {
-                    var f = new IntegerField { value = a.Value is uint u ? (int)u : 0 };
+                    var f = new IntegerField { value = (int)(uint)VfxEventAttrType.Info[a.Type].Coerce(a.Value) };
                     f.RegisterValueChangedCallback(e => a.Value = (uint)Mathf.Max(0, e.newValue));
                     new FieldMouseDragger<int>(f).SetDragZone(f);
                     return f;
                 }
                 case EventAttrType.Vector2:
                 {
-                    var f = new Vector2Field { value = a.Value is Vector2 v ? v : Vector2.zero };
+                    var f = new Vector2Field { value = (Vector2)VfxEventAttrType.Info[a.Type].Coerce(a.Value) };
                     f.RegisterValueChangedCallback(e => a.Value = e.newValue);
                     return f;
                 }
                 case EventAttrType.Vector3:
                 {
-                    var f = new Vector3Field { value = a.Value is Vector3 v ? v : Vector3.zero };
+                    var f = new Vector3Field { value = (Vector3)VfxEventAttrType.Info[a.Type].Coerce(a.Value) };
                     f.RegisterValueChangedCallback(e => a.Value = e.newValue);
                     return f;
                 }
                 case EventAttrType.Vector4:
                 {
-                    var f = new Vector4Field { value = a.Value is Vector4 v ? v : Vector4.zero };
+                    var f = new Vector4Field { value = (Vector4)VfxEventAttrType.Info[a.Type].Coerce(a.Value) };
                     f.RegisterValueChangedCallback(e => a.Value = e.newValue);
                     return f;
                 }
                 default: // Float
                 {
-                    var f = new FloatField { value = a.Value is float fl ? fl : 0f };
+                    var f = new FloatField { value = (float)VfxEventAttrType.Info[a.Type].Coerce(a.Value) };
                     f.RegisterValueChangedCallback(e => a.Value = e.newValue);
                     new FieldMouseDragger<float>(f).SetDragZone(f); // drag-scrub like the vector components
                     return f;
@@ -323,19 +304,7 @@ namespace VfxInspector.EditorTools
             }
         }
 
-        private static object DefaultAttrValue(EventAttrType t)
-        {
-            switch (t)
-            {
-                case EventAttrType.Bool: return true;
-                case EventAttrType.Int: return 0;
-                case EventAttrType.Uint: return 0u;
-                case EventAttrType.Vector2: return Vector2.zero;
-                case EventAttrType.Vector3: return Vector3.zero;
-                case EventAttrType.Vector4: return Vector4.zero;
-                default: return 0f;
-            }
-        }
+        private static object DefaultAttrValue(EventAttrType t) => VfxEventAttrType.Info[t].Default;
 
         // Default value for a standard attribute (color starts white, not black).
         private static object StdDefault(StdAttr s) => s.Name == "color" ? (object)Vector3.one : DefaultAttrValue(s.Type);
@@ -527,16 +496,7 @@ namespace VfxInspector.EditorTools
                     foreach (var a in _eventPayload)
                     {
                         if (string.IsNullOrEmpty(a.Name)) continue;
-                        switch (a.Type)
-                        {
-                            case EventAttrType.Bool:    attrib.SetBool(a.Name, a.Value is bool b && b); break;
-                            case EventAttrType.Int:     attrib.SetInt(a.Name, a.Value is int i ? i : 0); break;
-                            case EventAttrType.Uint:    attrib.SetUint(a.Name, a.Value is uint u ? u : 0u); break;
-                            case EventAttrType.Float:   attrib.SetFloat(a.Name, a.Value is float f ? f : 0f); break;
-                            case EventAttrType.Vector2: attrib.SetVector2(a.Name, a.Value is Vector2 v2 ? v2 : Vector2.zero); break;
-                            case EventAttrType.Vector3: attrib.SetVector3(a.Name, a.Value is Vector3 v3 ? v3 : Vector3.zero); break;
-                            case EventAttrType.Vector4: attrib.SetVector4(a.Name, a.Value is Vector4 v4 ? v4 : Vector4.zero); break;
-                        }
+                        VfxEventAttrType.Info[a.Type].Send(attrib, a.Name, a.Value);
                     }
                 }
 
@@ -561,33 +521,14 @@ namespace VfxInspector.EditorTools
         private static EventAttrDTO ToDTO(EventAttr a)
         {
             var d = new EventAttrDTO { name = a.Name, type = (int)a.Type, builtIn = a.BuiltIn, graphCustom = a.GraphCustom };
-            switch (a.Type)
-            {
-                case EventAttrType.Bool: d.boolVal = a.Value is bool b && b; break;
-                case EventAttrType.Int: d.intVal = a.Value is int i ? i : 0; break;
-                case EventAttrType.Uint: d.intVal = a.Value is uint u ? (int)u : 0; break;
-                case EventAttrType.Vector2: { var v = a.Value is Vector2 v2 ? v2 : Vector2.zero; d.vec = new Vector4(v.x, v.y, 0, 0); break; }
-                case EventAttrType.Vector3: { var v = a.Value is Vector3 v3 ? v3 : Vector3.zero; d.vec = new Vector4(v.x, v.y, v.z, 0); break; }
-                case EventAttrType.Vector4: d.vec = a.Value is Vector4 v4 ? v4 : Vector4.zero; break;
-                default: d.vec = new Vector4(a.Value is float f ? f : 0f, 0, 0, 0); break; // Float
-            }
+            (d.vec, d.boolVal, d.intVal) = VfxEventAttrType.Info[a.Type].Pack(a.Value);
             return d;
         }
 
         private static EventAttr FromDTO(EventAttrDTO d)
         {
             var t = (EventAttrType)Mathf.Clamp(d.type, 0, (int)EventAttrType.Int);
-            object val;
-            switch (t)
-            {
-                case EventAttrType.Bool: val = d.boolVal; break;
-                case EventAttrType.Int: val = d.intVal; break;
-                case EventAttrType.Uint: val = (uint)Mathf.Max(0, d.intVal); break;
-                case EventAttrType.Vector2: val = new Vector2(d.vec.x, d.vec.y); break;
-                case EventAttrType.Vector3: val = new Vector3(d.vec.x, d.vec.y, d.vec.z); break;
-                case EventAttrType.Vector4: val = d.vec; break;
-                default: val = d.vec.x; break; // Float
-            }
+            object val = VfxEventAttrType.Info[t].Unpack((d.vec, d.boolVal, d.intVal));
             return new EventAttr { Name = d.name, Type = t, Value = val, BuiltIn = d.builtIn, GraphCustom = d.graphCustom };
         }
 
@@ -624,8 +565,7 @@ namespace VfxInspector.EditorTools
         // Event payload (Send Event section): a list of named/typed attributes attached to the
         // event via VFXEventAttribute (modelled on the package's VFX Event Tester overlay). Lives
         // for the window session; survives body rebuilds (not a per-populate list).
-        // Enum order = the Custom type dropdown order (Float, V2, V3, V4, Bool, Uint, Int).
-        private enum EventAttrType { Float, Vector2, Vector3, Vector4, Bool, Uint, Int }
+        // The EventAttrType enum + its per-type contract live in VfxEventAttrType.cs.
         // BuiltIn = a standard attribute (name picked from a fixed dropdown, type fixed); otherwise
         // a custom attribute (name + type freely edited).
         // BuiltIn = standard attribute (name picked from the standard list, type fixed).

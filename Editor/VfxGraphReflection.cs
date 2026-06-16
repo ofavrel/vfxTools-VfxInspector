@@ -636,22 +636,26 @@ namespace VfxInspector.EditorTools
         /// inspector's "Current Attribute Layout" (VFXDataParticle.GetCurrentAttributeLayout). The
         /// layout is [NonSerialized] — populated when the graph compiles — so a system is OMITTED
         /// (→ caller shows "—") until the graph has been compiled/opened this session.
-        // Enumerate each particle system's (buckets, uniqueName) once from the graph's current
-        // attribute layout — the shared traversal behind GetSystemAttributeWords/Layout. Walks the
-        // graph's children, keeps the particle-data contexts (deduped — contexts share one data per
-        // system), yields each system's BucketInfo[] and resolved name. Yields nothing (degrades
+        // Shared graph→systems traversal behind GetSystemAttributeWords/Layout, GetSystemSpaces and
+        // GetSystemGpuTaskIndices. Walks the graph's children, keeps the particle-data contexts, and
+        // yields (context, particle data, unique system name) for each. Yields nothing (degrades
         // silently) when the reflection handles or graph aren't available, or a system has no name.
-        private static IEnumerable<(Array buckets, string name)> EnumerateSystemLayouts(VisualEffectAsset asset)
+        // `dedupByData`: contexts share one data object per system — pass true to visit each system
+        // once (per-system aggregation), false to visit every context (GPU task indices are unioned
+        // per system across its contexts, so that caller needs them all).
+        private static IEnumerable<(object child, object data, string name)> EnumerateSystemContexts(
+            VisualEffectAsset asset, bool dedupByData)
         {
             if (asset == null) yield break;
             Resolve();
             if (!s_Available || s_ChildrenProp == null || s_ContextType == null ||
-                s_GetData == null || s_GetCurrentLayout == null) yield break;
+                s_GetData == null || s_GetUniqueSystemName == null) yield break;
             if (!TryGetGraph(asset, out var graph)) yield break;
+            var systemNames = s_SystemNamesProp?.GetValue(graph);
+            if (systemNames == null) yield break;
             if (!(s_ChildrenProp.GetValue(graph) is IEnumerable children)) yield break;
 
-            var systemNames = s_SystemNamesProp?.GetValue(graph);
-            var seen = new HashSet<object>();
+            var seen = dedupByData ? new HashSet<object>() : null;
             foreach (var child in children)
             {
                 if (child == null || !s_ContextType.IsInstanceOfType(child)) continue;
@@ -659,15 +663,26 @@ namespace VfxInspector.EditorTools
                 try { data = s_GetData.Invoke(child, null); } catch { continue; }
                 if (data == null) continue;
                 if (s_DataParticleType != null && !s_DataParticleType.IsInstanceOfType(data)) continue;
-                if (!seen.Add(data)) continue; // contexts share one data per system
-
-                if (!(s_GetCurrentLayout.Invoke(data, null) is Array buckets) || buckets.Length == 0) continue;
+                if (seen != null && !seen.Add(data)) continue; // contexts share one data per system
 
                 string name = null;
-                if (systemNames != null && s_GetUniqueSystemName != null)
-                    try { name = s_GetUniqueSystemName.Invoke(systemNames, new[] { data }) as string; } catch (Exception e) { if (Verbose) Debug.LogException(e); }
-                if (!string.IsNullOrEmpty(name)) yield return (buckets, name);
+                try { name = s_GetUniqueSystemName.Invoke(systemNames, new[] { data }) as string; }
+                catch (Exception e) { if (Verbose) Debug.LogException(e); }
+                if (string.IsNullOrEmpty(name)) continue;
+
+                yield return (child, data, name);
             }
+        }
+
+        // Enumerate each particle system's (buckets, uniqueName) once from the graph's current
+        // attribute layout — the shared traversal (deduped) plus the layout read. Yields nothing
+        // when the layout accessor is unavailable or a system's layout is empty (not yet compiled).
+        private static IEnumerable<(Array buckets, string name)> EnumerateSystemLayouts(VisualEffectAsset asset)
+        {
+            if (s_GetCurrentLayout == null) yield break;
+            foreach (var (child, data, name) in EnumerateSystemContexts(asset, dedupByData: true))
+                if (s_GetCurrentLayout.Invoke(data, null) is Array buckets && buckets.Length > 0)
+                    yield return (buckets, name);
         }
 
         public static Dictionary<string, int> GetSystemAttributeWords(VisualEffectAsset asset)
@@ -776,38 +791,20 @@ namespace VfxInspector.EditorTools
         public static Dictionary<string, int> GetSystemSpaces(VisualEffectAsset asset)
         {
             var result = new Dictionary<string, int>();
-            if (asset == null) return result;
             Resolve();
-            if (!s_Available || s_ChildrenProp == null || s_ContextType == null ||
-                s_GetData == null || s_DataSpaceProp == null) return result;
+            if (s_DataSpaceProp == null) return result;
 
             try
             {
-                if (!TryGetGraph(asset, out var graph)) return result;
-                var systemNames = s_SystemNamesProp?.GetValue(graph);
-                var seen = new HashSet<object>();
-                if (!(s_ChildrenProp.GetValue(graph) is IEnumerable children)) return result;
-                foreach (var child in children)
+                foreach (var (child, data, name) in EnumerateSystemContexts(asset, dedupByData: true))
                 {
-                    if (child == null || !s_ContextType.IsInstanceOfType(child)) continue;
-                    object data;
-                    try { data = s_GetData.Invoke(child, null); } catch { continue; }
-                    if (data == null) continue;
-                    if (s_DataParticleType != null && !s_DataParticleType.IsInstanceOfType(data)) continue;
-                    if (!seen.Add(data)) continue; // contexts share one data per system
-
-                    int space; // map the VFXSpace enum name to an ordinal we can use without the VFX type
+                    // map the VFXSpace enum name to an ordinal we can use without the VFX type
                     switch (s_DataSpaceProp.GetValue(data)?.ToString())
                     {
-                        case "Local": space = 1; break;
-                        case "World": space = 2; break;
-                        default: space = 0; break; // None / unknown
+                        case "Local": result[name] = 1; break;
+                        case "World": result[name] = 2; break;
+                        default: result[name] = 0; break; // None / unknown
                     }
-
-                    string name = null;
-                    if (systemNames != null && s_GetUniqueSystemName != null)
-                        try { name = s_GetUniqueSystemName.Invoke(systemNames, new[] { data }) as string; } catch (Exception e) { if (Verbose) Debug.LogException(e); }
-                    if (!string.IsNullOrEmpty(name)) result[name] = space;
                 }
             }
             catch (Exception e)
@@ -827,32 +824,14 @@ namespace VfxInspector.EditorTools
         public static Dictionary<string, List<int>> GetSystemGpuTaskIndices(VisualEffectAsset asset)
         {
             var result = new Dictionary<string, List<int>>();
-            if (asset == null) return result;
             Resolve();
-            if (!s_Available || s_ChildrenProp == null || s_ContextType == null ||
-                s_GetData == null || s_GetUniqueSystemName == null ||
-                s_GetContextTaskIndices == null || s_TaskIndexField == null) return result;
+            if (s_GetContextTaskIndices == null || s_TaskIndexField == null) return result;
 
             try
             {
-                if (!TryGetGraph(asset, out var graph)) return result;
-                var systemNames = s_SystemNamesProp?.GetValue(graph);
-                if (systemNames == null) return result;
-                if (!(s_ChildrenProp.GetValue(graph) is IEnumerable children)) return result;
-                foreach (var child in children)
+                // dedupByData:false — a system's task indices are unioned across all its contexts.
+                foreach (var (child, _, name) in EnumerateSystemContexts(asset, dedupByData: false))
                 {
-                    if (child == null || !s_ContextType.IsInstanceOfType(child)) continue;
-                    object data;
-                    try { data = s_GetData.Invoke(child, null); } catch { continue; }
-                    if (data == null) continue;
-                    // GPU task markers are keyed by particle-system name (the same names SumGpuMs queries).
-                    if (s_DataParticleType != null && !s_DataParticleType.IsInstanceOfType(data)) continue;
-
-                    string name = null;
-                    try { name = s_GetUniqueSystemName.Invoke(systemNames, new[] { data }) as string; }
-                    catch (Exception e) { if (Verbose) Debug.LogException(e); }
-                    if (string.IsNullOrEmpty(name)) continue;
-
                     object tasksObj;
                     try { tasksObj = s_GetContextTaskIndices.Invoke(child, null); } catch { continue; }
                     if (!(tasksObj is IEnumerable tasks)) continue;

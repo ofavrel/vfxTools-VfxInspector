@@ -725,18 +725,38 @@ namespace VfxInspector.EditorTools
 
         // ---- copy / paste (interops with the Inspector via UnityEditor.Clipboard) ----
 
-        private static bool IsCopyPasteSupported(VfxExposedParam p)
+        // Per-type clipboard bridge: the VfxClipboard value key + presence key + how to coerce the
+        // sheet's boxed value into the clipboard value, described once per copy/paste-able type (so
+        // Copy/Paste/CanPaste/IsCopyPasteSupported all read from the same row — mirrors
+        // VfxPropertySheet.s_TypeBridge). Color is a Vector4f sheet entry, disambiguated by RealType.
+        private readonly struct ClipBridge
         {
-            switch (p.SheetType)
-            {
-                case "m_Float":
-                case "m_Vector2f":
-                case "m_Vector3f":
-                case "m_Vector4f":
-                case "m_Gradient": return true;
-                default: return false;
-            }
+            public readonly string ValueKey, HasKey;
+            public readonly Func<object, object> ToClip;
+            public ClipBridge(string valueKey, string hasKey, Func<object, object> toClip)
+            { ValueKey = valueKey; HasKey = hasKey; ToClip = toClip; }
         }
+
+        private static readonly Dictionary<string, ClipBridge> s_ClipBridge = new()
+        {
+            { "m_Float",     new ClipBridge("floatValue",   "hasFloat",   val => ToFloat(val)) },
+            { "m_Vector2f",  new ClipBridge("vector2Value", "hasVector2", val => val is Vector2 v2 ? v2 : Vector2.zero) },
+            { "m_Vector3f",  new ClipBridge("vector3Value", "hasVector3", val => val is Vector3 v3 ? v3 : Vector3.zero) },
+            { "m_Vector4f",  new ClipBridge("vector4Value", "hasVector4", val => val is Vector4 v4 ? v4 : Vector4.zero) },
+            { "m_Gradient",  new ClipBridge("gradientValue","hasGradient",val => val as Gradient ?? new Gradient()) },
+        };
+        // The Color clipboard bridge (a Vector4f sheet entry that round-trips through Color, not Vector4).
+        private static readonly ClipBridge s_ColorBridge =
+            new ClipBridge("colorValue", "hasColor", val => val is Color c ? c : (val is Vector4 v4 ? (Color)v4 : Color.white));
+
+        // The clipboard bridge for this property, or false if its type can't copy/paste.
+        private static bool ClipFor(VfxExposedParam p, out ClipBridge bridge)
+        {
+            if (p.SheetType == "m_Vector4f" && p.RealType == "Color") { bridge = s_ColorBridge; return true; }
+            return s_ClipBridge.TryGetValue(p.SheetType, out bridge);
+        }
+
+        private static bool IsCopyPasteSupported(VfxExposedParam p) => ClipFor(p, out _);
 
         private void AddCopyPasteMenu(VisualElement target, VfxExposedParam p)
         {
@@ -751,48 +771,16 @@ namespace VfxInspector.EditorTools
 
         private void CopyValue(VfxExposedParam p)
         {
-            object val = VfxPropertySheet.GetValue(_so, p);
-            switch (p.SheetType)
-            {
-                case "m_Float": VfxClipboard.Set("floatValue", ToFloat(val)); break;
-                case "m_Vector2f": VfxClipboard.Set("vector2Value", val is Vector2 v2 ? v2 : Vector2.zero); break;
-                case "m_Vector3f": VfxClipboard.Set("vector3Value", val is Vector3 v3 ? v3 : Vector3.zero); break;
-                case "m_Vector4f":
-                    if (p.RealType == "Color")
-                        VfxClipboard.Set("colorValue", val is Color c ? c : (val is Vector4 v4c ? (Color)v4c : Color.white));
-                    else
-                        VfxClipboard.Set("vector4Value", val is Vector4 v4 ? v4 : Vector4.zero);
-                    break;
-                case "m_Gradient": VfxClipboard.Set("gradientValue", val as Gradient ?? new Gradient()); break;
-            }
+            if (ClipFor(p, out var b))
+                VfxClipboard.Set(b.ValueKey, b.ToClip(VfxPropertySheet.GetValue(_so, p)));
         }
 
-        private bool CanPaste(VfxExposedParam p)
-        {
-            switch (p.SheetType)
-            {
-                case "m_Float": return VfxClipboard.Has("hasFloat");
-                case "m_Vector2f": return VfxClipboard.Has("hasVector2");
-                case "m_Vector3f": return VfxClipboard.Has("hasVector3");
-                case "m_Vector4f": return VfxClipboard.Has(p.RealType == "Color" ? "hasColor" : "hasVector4");
-                case "m_Gradient": return VfxClipboard.Has("hasGradient");
-                default: return false;
-            }
-        }
+        private bool CanPaste(VfxExposedParam p) => ClipFor(p, out var b) && VfxClipboard.Has(b.HasKey);
 
         private void PasteValue(VfxExposedParam p)
         {
-            switch (p.SheetType)
-            {
-                case "m_Float": if (VfxClipboard.Has("hasFloat")) SetValueAll(p, (float)VfxClipboard.Get("floatValue")); break;
-                case "m_Vector2f": if (VfxClipboard.Has("hasVector2")) SetValueAll(p, (Vector2)VfxClipboard.Get("vector2Value")); break;
-                case "m_Vector3f": if (VfxClipboard.Has("hasVector3")) SetValueAll(p, (Vector3)VfxClipboard.Get("vector3Value")); break;
-                case "m_Vector4f":
-                    if (p.RealType == "Color") { if (VfxClipboard.Has("hasColor")) SetValueAll(p, (Color)VfxClipboard.Get("colorValue")); }
-                    else { if (VfxClipboard.Has("hasVector4")) SetValueAll(p, (Vector4)VfxClipboard.Get("vector4Value")); }
-                    break;
-                case "m_Gradient": if (VfxClipboard.Has("hasGradient")) SetValueAll(p, (Gradient)VfxClipboard.Get("gradientValue")); break;
-            }
+            if (ClipFor(p, out var b) && VfxClipboard.Has(b.HasKey))
+                SetValueAll(p, VfxClipboard.Get(b.ValueKey));
             RefreshProperty(p);
         }
 
