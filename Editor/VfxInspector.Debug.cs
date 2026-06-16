@@ -41,6 +41,10 @@ namespace VfxInspector.EditorTools
         // Per-system attribute-buffer stride in 32-bit words (Σ bucket sizes); from the graph layout.
         // Computed per body build (static per asset); empty entries → "—" (layout not yet compiled).
         private Dictionary<string, int> _attrWords = new Dictionary<string, int>();
+        // Valid GPU task indices per system (from the compiled graph). SumGpuMs queries ONLY these —
+        // GetGPUTaskMarkerName access-violates the editor on an out-of-range index, so never probe.
+        // Computed per body build (static per asset); empty entries → no GPU task probing → "—".
+        private Dictionary<string, List<int>> _gpuTaskIndices = new Dictionary<string, List<int>>();
 
         private Toggle _showBoundsToggle; // the Visualizers "Show Bounds" checkbox (resynced each tick)
         // Show Bounds is SHARED across all windows (read straight from SessionState, not cached) so a
@@ -62,8 +66,10 @@ namespace VfxInspector.EditorTools
             _dbgSysRows.Clear(); // discard refs from the prior body before rebuilding
             if (_effect == null) { BuildPlaceholder(body, "No Visual Effect selected."); return; }
 
-            // Attribute layout is static per asset — read it once per body build (not per tick).
+            // Attribute layout + GPU task indices are static per asset — read once per body build
+            // (not per tick). The task-index map keeps SumGpuMs from ever probing an invalid index.
             _attrWords = VfxGraphReflection.GetSystemAttributeWords(_effect.visualEffectAsset);
+            _gpuTaskIndices = VfxGraphReflection.GetSystemGpuTaskIndices(_effect.visualEffectAsset);
 
             string section = CurrentSection();
             bool InSection(string id) => section == "all" || section == id;
@@ -469,15 +475,21 @@ namespace VfxInspector.EditorTools
             return v;
         }
 
-        // Sum the GPU time of a system's tasks (marker probed by index until one comes back empty).
-        // NaN when no task markers resolve (reflection unavailable).
+        // Sum the GPU time of a system's tasks. We query GetGPUTaskMarkerName ONLY with the task
+        // indices the compiled graph reports (_gpuTaskIndices) — never by probing-until-empty: the
+        // native getter doesn't bounds-check the index and access-violates the editor (an uncatchable
+        // hard crash) on an out-of-range value. NaN when the system has no known task indices yet
+        // (graph not compiled, or reflection unavailable) → "—".
         private double SumGpuMs(string system)
         {
+            if (!_gpuTaskIndices.TryGetValue(system, out var indices) || indices.Count == 0)
+                return double.NaN;
+
             double sum = 0; bool any = false;
-            for (int t = 0; t < 32; t++) // guard bound; real systems have a handful of tasks
+            foreach (int t in indices)
             {
                 string marker = VfxGraphReflection.GpuTaskMarker(_effect, system, t);
-                if (string.IsNullOrEmpty(marker)) break;
+                if (string.IsNullOrEmpty(marker)) continue;
                 var r = GetRecorder(marker);
                 if (r != null) { sum += Smoothed(marker, r.gpuElapsedNanoseconds) * 1e-6; any = true; }
             }

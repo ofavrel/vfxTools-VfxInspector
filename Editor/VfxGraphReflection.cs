@@ -109,6 +109,11 @@ namespace VfxInspector.EditorTools
         private static MethodInfo s_CpuSystemMarker;     // string GetCPUSystemMarkerName(string)
 
         private static MethodInfo s_GpuTaskMarker;       // string GetGPUTaskMarkerName(string, int)
+        // Valid GPU task indices per system, mirroring the package's own profiler UI: GetGPUTaskMarkerName
+        // must only ever be called with indices that exist — the native getter does NOT bounds-check the
+        // index and access-violates (hard editor crash, uncatchable in managed code) on an out-of-range one.
+        private static MethodInfo s_GetContextTaskIndices; // List<TaskProfilingData> VFXContext.GetContextTaskIndices()
+        private static FieldInfo s_TaskIndexField;         // int VFXData.TaskProfilingData.taskIndex
         // Per-system CPU/GPU markers are only emitted while the component is registered for profiling.
         private static MethodInfo s_Register, s_Unregister, s_IsRegistered;
 
@@ -139,6 +144,7 @@ namespace VfxInspector.EditorTools
                    $"attrLayout={s_GetCurrentLayout != null}, dataSpace={s_DataSpaceProp != null}, " +
                    $"uniqueSystemName={s_GetUniqueSystemName != null}, " +
                    $"cpuMarker={s_CpuEffectMarker != null}, gpuMarker={s_GpuTaskMarker != null}, " +
+                   $"gpuTaskIndices={s_GetContextTaskIndices != null && s_TaskIndexField != null}, " +
                    $"profilingReg={s_Register != null}";
         }
 
@@ -252,6 +258,15 @@ namespace VfxInspector.EditorTools
                 s_GpuTaskMarker = veType.GetMethods(any).FirstOrDefault(m =>
                     m.Name == "GetGPUTaskMarkerName" && m.GetParameters().Length == 2 &&
                     m.GetParameters()[0].ParameterType == typeof(string));
+                // The set of valid taskIndex values per context (so GetGPUTaskMarkerName is never called
+                // out of range — see GetSystemGpuTaskIndices). The internal struct VFXData.TaskProfilingData
+                // is reached via the method's List<T> return type, then its int `taskIndex` field.
+                s_GetContextTaskIndices = s_ContextType != null
+                    ? FindParameterless(s_ContextType, "GetContextTaskIndices", any) : null;
+                var taskListType = s_GetContextTaskIndices?.ReturnType;
+                var taskStructType = taskListType != null && taskListType.IsGenericType
+                    ? taskListType.GetGenericArguments().FirstOrDefault() : null;
+                s_TaskIndexField = taskStructType?.GetField("taskIndex", any);
                 s_Register = FindParameterless(veType, "RegisterForProfiling", any);
                 s_Unregister = FindParameterless(veType, "UnregisterForProfiling", any);
                 s_IsRegistered = FindParameterless(veType, "IsRegisteredForProfiling", any);
@@ -787,6 +802,67 @@ namespace VfxInspector.EditorTools
             catch (Exception e)
             {
                 Debug.LogWarning($"[VFX Inspector] Failed to read system spaces: {e.Message}");
+                if (Verbose) Debug.LogException(e); // full stack when diagnosing a package break
+            }
+            return result;
+        }
+
+        /// Valid GPU task indices per unique system name (the union over the system's contexts).
+        /// Mirrors the VFX package's own profiler UI (VFXContextProfilerUI iterates
+        /// VFXContext.GetContextTaskIndices()): GetGPUTaskMarkerName must ONLY be called with indices
+        /// that actually exist. The native getter does not bounds-check taskIndex and access-violates
+        /// (an uncatchable hard editor crash) on an out-of-range value — so callers must never probe.
+        /// Empty when the graph isn't compiled (the index map is [NonSerialized], populated on compile).
+        public static Dictionary<string, List<int>> GetSystemGpuTaskIndices(VisualEffectAsset asset)
+        {
+            var result = new Dictionary<string, List<int>>();
+            if (asset == null) return result;
+            Resolve();
+            if (!s_Available || s_ChildrenProp == null || s_ContextType == null ||
+                s_GetData == null || s_GetUniqueSystemName == null ||
+                s_GetContextTaskIndices == null || s_TaskIndexField == null) return result;
+
+            try
+            {
+                if (!TryGetGraph(asset, out var graph)) return result;
+                var systemNames = s_SystemNamesProp?.GetValue(graph);
+                if (systemNames == null) return result;
+                if (!(s_ChildrenProp.GetValue(graph) is IEnumerable children)) return result;
+                foreach (var child in children)
+                {
+                    if (child == null || !s_ContextType.IsInstanceOfType(child)) continue;
+                    object data;
+                    try { data = s_GetData.Invoke(child, null); } catch { continue; }
+                    if (data == null) continue;
+                    // GPU task markers are keyed by particle-system name (the same names SumGpuMs queries).
+                    if (s_DataParticleType != null && !s_DataParticleType.IsInstanceOfType(data)) continue;
+
+                    string name = null;
+                    try { name = s_GetUniqueSystemName.Invoke(systemNames, new[] { data }) as string; }
+                    catch (Exception e) { if (Verbose) Debug.LogException(e); }
+                    if (string.IsNullOrEmpty(name)) continue;
+
+                    object tasksObj;
+                    try { tasksObj = s_GetContextTaskIndices.Invoke(child, null); } catch { continue; }
+                    if (!(tasksObj is IEnumerable tasks)) continue;
+
+                    if (!result.TryGetValue(name, out var indices))
+                        result[name] = indices = new List<int>();
+                    foreach (var task in tasks)
+                    {
+                        if (task == null) continue;
+                        try
+                        {
+                            if (s_TaskIndexField.GetValue(task) is int idx && idx >= 0 && !indices.Contains(idx))
+                                indices.Add(idx);
+                        }
+                        catch (Exception e) { if (Verbose) Debug.LogException(e); }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[VFX Inspector] Failed to read GPU task indices: {e.Message}");
                 if (Verbose) Debug.LogException(e); // full stack when diagnosing a package break
             }
             return result;

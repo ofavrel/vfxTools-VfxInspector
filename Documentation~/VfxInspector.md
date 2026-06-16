@@ -67,8 +67,10 @@ has been retired — the inspector + native per-tab popups now cover everything 
   (per-system attribute stride from `VFXDataParticle.GetCurrentAttributeLayout`), `GetSystemAttributeLayout(asset)`
   (the full per-system attribute list — name/type/words — from the same `BucketInfo[].attributes`),
   `GetSystemSpaces(asset)` (per-system sim space 0/1/2 = None/Local/World from `VFXDataParticle.space`,
-  used to place the particle scene overlay), and the internal `VisualEffect` CPU/GPU profiler
-  **marker-name** helpers (`CpuEffectMarker`/`CpuSystemMarker`/`GpuTaskMarker`).
+  used to place the particle scene overlay), `GetSystemGpuTaskIndices(asset)` (per-system *valid* GPU
+  task indices from `VFXContext.GetContextTaskIndices()` — so `GpuTaskMarker` is never called out of
+  range; see the Debug-tab Timing note re: the access-violation crash), and the internal `VisualEffect`
+  CPU/GPU profiler **marker-name** helpers (`CpuEffectMarker`/`CpuSystemMarker`/`GpuTaskMarker`).
   The package contract is centralized: `VfxNs`/`VfxAsm` consts + a `VfxType(shortName)` local in
   `Resolve()` are the one source of the namespace/assembly names. `GetSystemAttributeWords` and
   `GetSystemAttributeLayout` share one traversal (`EnumerateSystemLayouts` → per-system
@@ -474,8 +476,17 @@ Sphere/Circle/Torus variants work with no extra code).
     the int overload and invoking with a string throws → empty marker → "—"). They're fed to public
     `Recorder.Get(name)` →
     `elapsedNanoseconds` (CPU) / `gpuElapsedNanoseconds` (GPU). Recorders are created+enabled lazily,
-    cached in `_recorders` (keyed by marker, cleared on target change); GPU tasks are probed by index
-    until a marker comes back empty (`SumGpuMs`). **Crucially, the per-system CPU/GPU markers are only
+    cached in `_recorders` (keyed by marker, cleared on target change). **GPU task markers must be queried
+    only with task indices that actually exist** — `SumGpuMs` looks each system's valid indices up in
+    `_gpuTaskIndices` (= `VfxGraphReflection.GetSystemGpuTaskIndices`, the union of the system's contexts'
+    `VFXContext.GetContextTaskIndices()`, mirroring the package's own `VFXContextProfilerUI`). **Do NOT
+    probe-until-empty** (the original `for t=0..31` loop): the native `GetGPUTaskMarkerName(systemName, int)`
+    does **not** bounds-check `taskIndex`, so an out-of-range index reads unallocated memory → a hard
+    **access-violation crash** of the editor (0xC0000005, uncatchable by the managed `try/catch` in
+    `InvokeStr`). It survived on macOS/Metal by luck (different allocator) but reliably crashed on
+    Windows/D3D12, even at `t=0` for a system with no GPU tasks or an uncompiled graph. The index map is
+    `[NonSerialized]`/empty until the graph compiles → no GPU probing → "—" (same limitation as the
+    package profiler board). **Crucially, the per-system CPU/GPU markers are only
     emitted while the component is _registered for profiling_** (`VfxGraphReflection.RegisterForProfiling`,
     mirrors `VFXProfilingBoard.Attach`) — `EnsureProfiling` (called from `RefreshDebugStats` while the
     timing readouts are on screen) registers `_effect` on demand (idempotent, self-heals across windows,
