@@ -80,9 +80,12 @@ has been retired — the inspector + native per-tab popups now cover everything 
   range; see the Debug-tab Timing note re: the access-violation crash), and the internal `VisualEffect`
   CPU/GPU profiler **marker-name** helpers (`CpuEffectMarker`/`CpuSystemMarker`/`GpuTaskMarker`).
   The package contract is centralized: `VfxNs`/`VfxAsm` consts + a `VfxType(shortName)` local in
-  `Resolve()` are the one source of the namespace/assembly names. `GetSystemAttributeWords` and
-  `GetSystemAttributeLayout` share one traversal (`EnumerateSystemLayouts` → per-system
-  `(buckets, name)`); `GetSystemSpaces` keeps its own (it needs the data object, not a compiled layout).
+  `Resolve()` are the one source of the namespace/assembly names. All four per-system queries share one
+  graph→systems traversal — **`EnumerateSystemContexts(asset, dedupByData)`** yields
+  `(context, particle data, unique name)` per particle-data context; `GetSystemSpaces` and
+  `EnumerateSystemLayouts` (→ `GetSystemAttributeWords`/`Layout`) pass `dedupByData:true` (one visit per
+  system), while `GetSystemGpuTaskIndices` passes `false` (it unions task indices across each system's
+  contexts). Each caller adds only its own handle guard + per-system work.
 - **`VfxPropertySheet.cs`** — read/write the component's `m_PropertySheet` via
   `SerializedObject` (undo/prefab/multi-edit safe). Field names are consts
   (`NameField`/`ValueField`/`OverriddenField`); the per-type read+write is one `s_TypeBridge`
