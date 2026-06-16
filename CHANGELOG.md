@@ -4,6 +4,14 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-16
+### Added
+- A ready-made **"Debug Readback" subgraph block** (`Readback/Debug Readback.vfxblock`) that wraps the
+  Custom HLSL readback function. Drag it into a system's Update or Output context instead of wiring a
+  Custom HLSL block by hand — the manual route still works for full control.
+### Changed
+- Readback in-panel help + README now point at the subgraph block as the primary path.
+
 ## [0.3.1] - 2026-06-16
 ### Added
 - Declared the `com.unity.visualeffectgraph` **17.6.0** dependency so Package Manager resolves VFX Graph

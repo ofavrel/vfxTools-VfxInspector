@@ -29,8 +29,9 @@ Select a GameObject with a `VisualEffect` component — this inspector replaces 
 single tab off into its own dockable window, use the component's **gear ▸ VFX Inspector ▸ \<Tab\>** menu (or
 right-click a tab inside the inspector). Diagnostics: **Tools ▸ VFX Inspector ▸ Diagnose Target**.
 
-The opt-in particle spreadsheet needs the graph instrumented with a Custom HLSL block pointing at
-`Packages/com.vfxtools.vfxinspector/Readback/VfxReadback.hlsl` — see the in-panel help and the
+The opt-in particle spreadsheet needs the graph instrumented: add the ready-made **"Debug Readback"
+subgraph block** (in this package's `Readback/` folder) to a system's Update or Output context — or, for
+full control, a Custom HLSL block pointing at `Readback/VfxReadback.hlsl`. See the in-panel help and the
 architecture notes in `Documentation~/VfxInspector.md`.
 
 ## License

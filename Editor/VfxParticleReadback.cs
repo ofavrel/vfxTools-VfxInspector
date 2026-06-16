@@ -243,10 +243,11 @@ namespace VfxInspector.EditorTools
             // Empty / not-instrumented state.
             _readbackHelp = MakeElement("vfx-helpbox");
             _readbackHelp.Add(new Label(
-                "No readback data. Add a Custom HLSL block (function VfxReadback) pointing at " +
-                "Packages/com.vfxtools.vfxinspector/Readback/VfxReadback.hlsl in this system's Update or Output context. For " +
+                "No readback data. Add the \"Debug Readback\" subgraph block (from this package's Readback/ " +
+                "folder) to the system's Update or Output context — or, manually, a Custom HLSL block (function " +
+                "VfxReadback) pointing at Packages/com.vfxtools.vfxinspector/Readback/VfxReadback.hlsl. For " +
                 "separate per-instance rows, expose an Int property named VfxReadbackInstanceId and wire it to " +
-                "the block's instanceId input (the window auto-assigns ids). To debug several systems at once, " +
+                "the block's instanceId input (the inspector auto-assigns ids). To debug several systems at once, " +
                 "put a block in each system and wire each block's systemId to a distinct constant per the legend. " +
                 "Only public APIs — see the docs."));
             host.Add(_readbackHelp);
