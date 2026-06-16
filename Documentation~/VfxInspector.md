@@ -33,7 +33,11 @@ has been retired — the inspector + native per-tab popups now cover everything 
   - **`.Playback.cs`** — persistent mini-transport (scrub/play/step/loop/Rate) + Playback tab
     `PField` options (Duration/Seed/Reseed/Initial Event).
   - **`.Events.cs`** — the Playback tab's "Send Event" section: chips + the `VFXEventAttribute`
-    payload editor (built-in / graph-custom / free-custom rows), per-asset payload persistence.
+    payload editor (built-in / graph-custom / free-custom rows), per-asset payload persistence. The
+    per-type knowledge (label/icon/default/coerce/send/DTO pack-unpack) is centralized in
+    `VfxEventAttrType` — `BuildAttrValueControl` keeps the per-type widget factory but reads values
+    through it, and `DefaultAttrValue`/`AttrTypeLabel`/`AttrTypeIcon`/`SendEventToAll`/`ToDTO`/`FromDTO`
+    all delegate (no parallel `EventAttrType` switches left).
   - **`.Debug.cs`** — Debug tab live stats grid, CPU/GPU profiling markers, per-system bars,
     texture usage, Show Bounds visualizer. (The Debug ▸ Particles spreadsheet is its own class —
     see `VfxParticleReadback` below — wired in here via `AddDebugGroup(..., _readback.Build)`.)
@@ -59,6 +63,10 @@ has been retired — the inspector + native per-tab popups now cover everything 
     `AssignCategoryColors` (keyword palette else distinct fallback) + the shared `Hex`. The
     Properties tab's `BuildStructLeavesMap`/`BuildCategoryColorMap` and Debug's `EfficiencyColor`
     call into it.
+  - **`VfxEventAttrType.cs`** — the `EventAttrType` enum + one descriptor per type
+    (`Label`/`IconName`/`Default`/`Coerce`/`Send`/`Pack`/`Unpack`), the single source of truth for the
+    Send-Event payload editor's per-type behavior (mirrors `VfxPropertySheet.s_TypeBridge`). Everything
+    but `Send` is pure (unit-tested in `VfxEventAttrTypeTests`); `Send` is a `VFXEventAttribute` delegate.
 - **`VfxGraphReflection.cs`** — reflection bridge to the editor-internal VFX graph;
   `GetExposedParameters(asset)` → `List<VfxExposedParam>`, `GetEventNames(asset)` →
   custom Event-block names (`VFXBasicEvent.eventName` via `VFXGraph.children`), and
@@ -101,7 +109,8 @@ has been retired — the inspector + native per-tab popups now cover everything 
   — the **package-update canary** (`BindingResolves` asserts `available=True`; param types, event
   names, and by-name custom-attribute mapping checked against the fixtures). Plus **pure-logic unit
   tests** (no fixture): `VfxConstrainTests`, `VfxReadbackRecordTests` (incl. an offset-contract test
-  guarding `.hlsl` drift), `VfxPropertyLayoutTests`. Fixture-dependent tests `Assert.Ignore` when
+  guarding `.hlsl` drift), `VfxPropertyLayoutTests`, `VfxEventAttrTypeTests` (table completeness,
+  `Coerce` fallbacks, and the `Pack`/`Unpack` DTO round-trip). Fixture-dependent tests `Assert.Ignore` when
   their `.vfx` fixture is absent; the authored fixtures live alongside the tests
   (`Assets/VfxInspector/Editor/Tests/VfxInspector_Properties|Events|MultiSystem.vfx` — under `Editor/` so
   they stay out of builds). Run via **Window ▸ General ▸ Test Runner ▸ EditMode**.
