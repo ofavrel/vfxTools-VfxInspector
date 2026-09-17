@@ -4,6 +4,15 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-09-17
+### Added
+- **Live property values**: the Properties tab now reflects a property's *current runtime value* —
+  including changes made by a script via `VisualEffect.SetFloat`/`SetVector3`/`SetBool`/etc — instead
+  of only the component's serialized override sheet. Bound fields refresh automatically at ~30fps
+  while visible, in both Edit and Play mode, without needing to reselect the object or edit the field
+  yourself. Undo, prefab overrides and multi-edit are unaffected — they still go through the sheet
+  exactly as before.
+
 ## [0.4.0] - 2026-06-16
 ### Added
 - A ready-made **"Debug Readback" subgraph block** (`Readback/Debug Readback.vfxblock`) that wraps the

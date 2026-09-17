@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.VFX;
 
 namespace VfxInspector.EditorTools
 {
@@ -61,6 +62,18 @@ namespace VfxInspector.EditorTools
                     return ReadValue(valueProp);
             }
             return p.DefaultValue;
+        }
+
+        /// Current *display* value: the live runtime value when `effect` is a real, initialized
+        /// scene instance that currently exposes this property (e.g. changed by a script via
+        /// VisualEffect.SetFloat/SetVector3/... since the sheet was last applied), else the sheet's
+        /// effective value (override or graph default). Undo/prefab-overrides/multi-edit still go
+        /// through the sheet exclusively via SetValue/Reset — this only affects what's displayed.
+        public static object GetEffectiveValue(SerializedObject so, VisualEffect effect, VfxExposedParam p)
+        {
+            if (effect != null && !EditorUtility.IsPersistent(effect) && TryGetRuntimeValue(effect, p, out var live))
+                return live;
+            return GetValue(so, p);
         }
 
         /// Write a value as an override, creating the entry if needed, and flag it
@@ -144,6 +157,60 @@ namespace VfxInspector.EditorTools
         private static void WriteValue(SerializedProperty prop, object value)
         {
             if (s_TypeBridge.TryGetValue(prop.propertyType, out var b)) b.Write(prop, value);
+        }
+
+        // --- runtime value bridge (VisualEffect.Has*/Get*), keyed on VfxExposedParam.SheetType ---
+        //
+        // Mirrors s_TypeBridge above but reads the live native instance instead of the serialized
+        // sheet, for properties a script may have changed at runtime (VisualEffect.SetFloat, etc).
+        // Color rides on a m_Vector4f sheet entry (same disambiguation BuildControl uses), and any
+        // SheetType with no runtime getter (other m_NamedObject sub-types) is simply absent here.
+        private static readonly Dictionary<string, Func<VisualEffect, string, (bool has, object value)>> s_RuntimeBridge = new()
+        {
+            { "m_Float",   (vfx, n) => (vfx.HasFloat(n), vfx.HasFloat(n) ? (object)vfx.GetFloat(n) : null) },
+            { "m_Int",     (vfx, n) => (vfx.HasInt(n), vfx.HasInt(n) ? (object)vfx.GetInt(n) : null) },
+            { "m_Uint",    (vfx, n) => (vfx.HasUInt(n), vfx.HasUInt(n) ? (object)vfx.GetUInt(n) : null) },
+            { "m_Bool",    (vfx, n) => (vfx.HasBool(n), vfx.HasBool(n) ? (object)vfx.GetBool(n) : null) },
+            { "m_Vector2f",(vfx, n) => (vfx.HasVector2(n), vfx.HasVector2(n) ? (object)vfx.GetVector2(n) : null) },
+            { "m_Vector3f",(vfx, n) => (vfx.HasVector3(n), vfx.HasVector3(n) ? (object)vfx.GetVector3(n) : null) },
+            { "m_Vector4f",(vfx, n) => (vfx.HasVector4(n), vfx.HasVector4(n) ? (object)vfx.GetVector4(n) : null) },
+            { "m_Gradient",(vfx, n) => (vfx.HasGradient(n), vfx.HasGradient(n) ? (object)vfx.GetGradient(n) : null) },
+            { "m_AnimationCurve", (vfx, n) => (vfx.HasAnimationCurve(n), vfx.HasAnimationCurve(n) ? (object)vfx.GetAnimationCurve(n) : null) },
+        };
+
+        /// The current runtime value of `p` on `effect`, if the graph currently exposes it and its
+        /// type has a live getter. False (and `value = null`) otherwise — caller should fall back
+        /// to the sheet.
+        public static bool TryGetRuntimeValue(VisualEffect effect, VfxExposedParam p, out object value)
+        {
+            value = null;
+            if (effect == null) return false;
+
+            if (p.SheetType == "m_Vector4f" && p.RealType == "Color")
+            {
+                if (!effect.HasVector4(p.Name)) return false;
+                value = (Color)effect.GetVector4(p.Name);
+                return true;
+            }
+            if (p.SheetType == "m_NamedObject")
+            {
+                // Textures and meshes are the only m_NamedObject sub-types VisualEffect exposes a
+                // live getter for; anything else (e.g. SkinnedMeshRenderer) falls back to the sheet.
+                bool isTexture = p.RealType == "Texture" || p.RealType == "Texture2D" ||
+                    p.RealType == "Texture2DArray" || p.RealType == "Texture3D" ||
+                    p.RealType == "Cubemap" || p.RealType == "CubemapArray";
+                if (isTexture && effect.HasTexture(p.Name))
+                { value = effect.GetTexture(p.Name); return true; }
+                if (p.RealType == "Mesh" && effect.HasMesh(p.Name))
+                { value = effect.GetMesh(p.Name); return true; }
+                return false;
+            }
+            if (!s_RuntimeBridge.TryGetValue(p.SheetType, out var reader)) return false;
+
+            var (has, v) = reader(effect, p.Name);
+            if (!has) return false;
+            value = v;
+            return true;
         }
     }
 }

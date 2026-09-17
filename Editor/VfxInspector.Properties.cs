@@ -686,7 +686,7 @@ namespace VfxInspector.EditorTools
                              Func<object, T> toControl, Func<T, object> toModel,
                              Func<T, T, T> constrain = null)
         {
-            field.SetValueWithoutNotify(toControl(VfxPropertySheet.GetValue(_so, p)));
+            field.SetValueWithoutNotify(toControl(VfxPropertySheet.GetEffectiveValue(_so, _effect, p)));
             field.showMixedValue = IsMixed(p);
             field.RegisterValueChangedCallback(e =>
             {
@@ -701,7 +701,15 @@ namespace VfxInspector.EditorTools
             });
             RegisterRefresher(p.Name, () =>
             {
-                field.SetValueWithoutNotify(toControl(VfxPropertySheet.GetValue(_so, p)));
+                // Skip while the field (or one of its internal sub-controls, e.g. a Vector3Field's
+                // per-axis input) has focus, so the ~30fps live-value sync (RefreshLiveValues) never
+                // fights an in-progress drag/typing session. A refresh triggered by a real edit here
+                // (RefreshProperty) only ever targets *other* controls showing the same property, so
+                // this never blocks the edit that caused it.
+                var focused = field.panel?.focusController?.focusedElement as VisualElement;
+                if (focused != null && (focused == field || field.Contains(focused))) return;
+
+                field.SetValueWithoutNotify(toControl(VfxPropertySheet.GetEffectiveValue(_so, _effect, p)));
                 field.showMixedValue = IsMixed(p);
                 if (row != null) UpdateRowModifiedClass(row, p);
             });

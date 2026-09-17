@@ -103,5 +103,34 @@ namespace VfxInspector.EditorTools.Tests
             VfxPropertySheet.Reset(_so, p);
             Assert.That(VfxPropertySheet.CountModified(_so, _params), Is.EqualTo(before));
         }
+
+        // A script driving the exposed property at runtime (VisualEffect.SetFloat) never touches
+        // m_PropertySheet — GetEffectiveValue must surface that live value for display, while the
+        // sheet-only GetValue (writes, Undo, "modified" state) stays exactly as it was.
+        [Test]
+        public void GetEffectiveValue_PrefersLiveRuntimeValue_OverSheet()
+        {
+            var p = Param("Mass");
+            VfxPropertySheet.SetValue(_so, p, 1f);
+            Assert.That(VfxPropertySheet.IsOverridden(_so, p), Is.True);
+
+            _vfx.SetFloat(p.Name, 7f); // runtime write, bypasses the sheet entirely
+
+            Assert.That(System.Convert.ToSingle(VfxPropertySheet.GetEffectiveValue(_so, _vfx, p)),
+                Is.EqualTo(7f).Within(1e-4f), "display value should follow the live runtime write");
+            Assert.That(System.Convert.ToSingle(VfxPropertySheet.GetValue(_so, p)),
+                Is.EqualTo(1f).Within(1e-4f), "sheet-only read must stay decoupled from the runtime value");
+        }
+
+        [Test]
+        public void GetEffectiveValue_FallsBackToSheet_ForPersistentTarget()
+        {
+            // A persistent (prefab asset) target has no live native instance to read from, so
+            // GetEffectiveValue must behave exactly like GetValue for it.
+            var p = Param("Mass");
+            VfxPropertySheet.SetValue(_so, p, 2.5f);
+            Assert.That(System.Convert.ToSingle(VfxPropertySheet.GetEffectiveValue(_so, null, p)),
+                Is.EqualTo(2.5f).Within(1e-4f));
+        }
     }
 }

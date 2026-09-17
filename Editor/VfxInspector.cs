@@ -876,7 +876,24 @@ namespace VfxInspector.EditorTools
             }
 
             UpdateLive();
+            RefreshLiveValues(); // reflect script-driven runtime changes (VisualEffect.SetFloat, etc) in bound property fields
             _readback.Pump(); // keeps the readback globals bound; only requests data when the panel shows
+        }
+
+        // Re-seeds every currently-bound property control from its live runtime value (falling back
+        // to the sheet), reusing the same refresher closures RefreshProperty uses after a manual edit
+        // (Editor\VfxInspector.Properties.cs). _refreshers only ever holds entries for controls that
+        // are actually on screen (cleared/rebuilt each PopulateActiveTab), so this is bounded to what
+        // the user can see — same scoping as RefreshDebugStats, already called unconditionally here.
+        private void RefreshLiveValues()
+        {
+            if (_effect == null || EditorUtility.IsPersistent(_effect) || _refreshers.Count == 0) return;
+            foreach (var p in _params)
+            {
+                if (p.IsStruct) continue;
+                if (_refreshers.TryGetValue(p.Name, out var list))
+                    foreach (var refresh in list) refresh();
+            }
         }
 
         private void UpdateLive()
